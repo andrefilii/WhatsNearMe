@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.map.MapsFragment">
+
+    <fragment
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:orientation="horizontal"
+        android:padding="10dp" >
+
+        <Button
+            android:id="@+id/btnRestaurants"
+            style="@style/MapButtonStyle"
+            android:text="Ristoranti"
+            android:drawableLeft="@drawable/ic_restaurant"/>
+
+        <Button
+            android:id="@+id/btnMuseums"
+            style="@style/MapButtonStyle"
+            android:text="Musei"
+            android:drawableLeft="@drawable/ic_museum"/>
+
+        <Button
+            android:id="@+id/btnWC"
+            style="@style/MapButtonStyle"
+            android:text="WC"
+            android:drawableLeft="@drawable/ic_wc" />
+
+        <Button
+            android:id="@+id/btnOthers"
+            style="@style/MapButtonStyle"
+            android:text="Altro"
+            android:drawableLeft="@drawable/ic_more" />
+
+    </LinearLayout>
+
+</RelativeLayout>
