@@ -34,6 +34,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.preference)
     val fragmentVerison = "1.7.1"
 
     implementation("androidx.fragment:fragment:$fragmentVerison")
