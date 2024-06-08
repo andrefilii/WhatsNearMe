@@ -33,16 +33,10 @@
             android:drawableLeft="@drawable/ic_museum"/>
 
         <Button
-            android:id="@+id/btnWC"
+            android:id="@+id/btnATM"
             style="@style/MapButtonStyle"
-            android:text="WC"
+            android:text="ATM"
             android:drawableLeft="@drawable/ic_wc" />
-
-        <Button
-            android:id="@+id/btnOthers"
-            style="@style/MapButtonStyle"
-            android:text="Altro"
-            android:drawableLeft="@drawable/ic_more" />
 
     </LinearLayout>
 

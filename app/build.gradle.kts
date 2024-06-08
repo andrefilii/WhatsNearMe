@@ -15,6 +15,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        resValue("string", "MAPS_API_KEY", "AIzaSyAYXDBytEqyZPbou7F2s0ad1Pvif0tfvbU")
     }
 
     buildFeatures {
@@ -35,10 +37,9 @@ android {
 
 dependencies {
     implementation(libs.preference)
-    val fragmentVerison = "1.7.1"
-
-    implementation("androidx.fragment:fragment:$fragmentVerison")
+    implementation(libs.fragment)
     implementation(libs.play.services.maps)
+    implementation(libs.play.services.location)
 
     implementation(libs.appcompat)
     implementation(libs.material)

@@ -81,9 +81,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadFragment(Fragment fragment) {
         if (fragment != null && fragment != currentFragment) {
-            fragmentManager.beginTransaction()
-                    .hide(currentFragment)
-                    .replace(binding.fragmentContainer.getId(), fragment)
+            FragmentTransaction transaction = fragmentManager.beginTransaction();
+            if (currentFragment != null)
+                    transaction.hide(currentFragment);
+            transaction.replace(binding.fragmentContainer.getId(), fragment)
                     .show(fragment)
                     .commit();
             currentFragment = fragment;
