@@ -43,6 +43,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import java.io.File;
 import java.util.List;
 
+import it.andreafilippi.whatsnearme.BuildConfig;
 import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.FragmentMapsBinding;
 import it.andreafilippi.whatsnearme.entities.Place;
@@ -261,7 +262,8 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
                 .setMap(myMap)
                 .setRadius(getSearchRadius())
                 .setCenter(currentLocationMarker.getPosition())
-                .setCategory(category);
+                .setCategory(category)
+                .setApiKey(BuildConfig.MAPS_API_KEY);
 
         new FetchPlaces(params, mapMarkers, this::onFetchPlacesCompleted).execute();
     }

@@ -12,6 +12,7 @@ googleAndroidLibrariesMapsplatformSecretsGradlePlugin = "2.0.1"
 playServicesLocation = "21.3.0"
 playServicesMaps = "18.1.0"
 preference = "1.2.0"
+secretsGradlePlugin = "2.0.1"
 
 [libraries]
 fragment = { module = "androidx.fragment:fragment", version.ref = "fragmentVerison" }
@@ -25,6 +26,7 @@ constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayo
 play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
 preference = { group = "androidx.preference", name = "preference", version.ref = "preference" }
+secrets-gradle-plugin = { module = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
