@@ -28,7 +28,7 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
     private static final Place[] testPlaces = {
             new Place().setName("Museo Città di Livorno").setLat(43.5551451).setLng(10.3071166),
             new Place().setName("Museo Fortezza Vecchia").setLat(43.5527328).setLng(10.3021199),
-            new Place().setName("Museo Piazza Grande").setLat(43.5506926).setLng(10.3089171)
+            new Place().setName("Museo Piazza Grande").setLat(43.5506926).setLng(10.3089171).setTags(List.of("Ciao", "Git", "Git pull", "Git fetch remote"))
     };
 
     private static final String ENDPOINT = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?";
@@ -105,15 +105,20 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
     }
 
     @Override
-    protected void onProgressUpdate(Place... values) {
-        super.onProgressUpdate(values);
+    protected void onProgressUpdate(Place... places) {
+        super.onProgressUpdate(places);
 
-        Place place = values[0];
+        Place place = places[0];
 
         LatLng latLng = new LatLng(place.getLat(), place.getLng());
-        markers.add(map.addMarker(new MarkerOptions()
-                .title(place.getName())
-                .position(latLng)));
+        Marker marker = map.addMarker(new MarkerOptions()
+                        .title(place.getName())
+                        .position(latLng));
+        if (marker != null) {
+            // informazioni poi da usare nel dialog
+            marker.setTag(place);
+            markers.add(marker);
+        }
     }
 
     @Override

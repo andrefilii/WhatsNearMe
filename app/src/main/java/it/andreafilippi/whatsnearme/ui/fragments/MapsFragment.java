@@ -1,4 +1,4 @@
-package it.andreafilippi.whatsnearme.ui.map;
+package it.andreafilippi.whatsnearme.ui.fragments;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -48,14 +48,8 @@ import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.FragmentMapsBinding;
 import it.andreafilippi.whatsnearme.entities.Place;
 import it.andreafilippi.whatsnearme.params.PlacesTaskParam;
+import it.andreafilippi.whatsnearme.ui.dialogs.MarkerDialog;
 import it.andreafilippi.whatsnearme.utils.FetchPlaces;
-
-/*
-* !!!!
-*  SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getContext());
-                boolean x = settings.getBoolean("sync", false);
-           usare questo per prendere le impostazioini
-* */
 
 public class MapsFragment extends Fragment implements OnMapReadyCallback {
     private static final String CAMERA_POSITION = "camera_position";
@@ -88,10 +82,10 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         binding = FragmentMapsBinding.inflate(inflater, container, false);
 
         // salvo il preference manager
-        settings = PreferenceManager.getDefaultSharedPreferences(getContext());
+        settings = PreferenceManager.getDefaultSharedPreferences(requireContext());
 
         // prendo il client per la posizione
-        flpc = LocationServices.getFusedLocationProviderClient(getContext());
+        flpc = LocationServices.getFusedLocationProviderClient(requireContext());
 
         // creo la callback per la posizione
         locationUpdateCallback = new LocationCallback() {
@@ -126,7 +120,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             binding.btnMuseums.setEnabled(false);
             binding.btnATM.setEnabled(false);
 
-            Toast.makeText(getContext(),
+            Toast.makeText(requireContext(),
                     "Abilita la posizione per utilizzare la funzione di ricerca",
                     Toast.LENGTH_LONG).show();
         }
@@ -165,7 +159,9 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     public void onMapReady(@NonNull GoogleMap googleMap) {
         myMap = googleMap;
 
-        myMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(getContext(), R.raw.map_style));
+        myMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(requireContext(), R.raw.map_style));
+
+        myMap.setOnMarkerClickListener(this::onMarkerClick);
 
         boolean isLocationEnabled = checkLocationPermission();
         if (isLocationEnabled) {
@@ -180,6 +176,22 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         if (!isLocationEnabled) {
             myMap.animateCamera(CameraUpdateFactory.newLatLngZoom(italy, 3));
         }
+    }
+
+    private boolean onMarkerClick(Marker marker) {
+        if (marker.getTag() != null) {
+            // se ha il campo tag, significa che è un luogo di interesse e non la posizione
+            // TODO apertura dialog passando le informazioni
+            Place place = (Place) marker.getTag();
+            Log.d("MARKER CLICK", marker.toString());
+
+            new MarkerDialog(place).show(getActivity().getSupportFragmentManager(), "MarkerDialog");
+
+            return true;
+        }
+
+        // comportamento standard
+        return false;
     }
 
     private void startLocationUpdated() {
@@ -227,7 +239,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
     private void onBtnATMClick(View view) {
         if (currentLocationMarker == null) {
-            Toast.makeText(getContext(),
+            Toast.makeText(requireContext(),
                     "Per favore attendere il caricamento della posizione (segnaposto blu).",
                     Toast.LENGTH_SHORT).show();
         } else {
@@ -237,7 +249,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
     private void onBtnMuseumsClick(View view) {
         if (currentLocationMarker == null) {
-            Toast.makeText(getContext(),
+            Toast.makeText(requireContext(),
                     "Per favore attendere il caricamento della posizione (segnaposto blu).",
                     Toast.LENGTH_SHORT).show();
         } else {
@@ -247,7 +259,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
     private void onBtnRestaurantsClick(View view) {
         if (currentLocationMarker == null) {
-            Toast.makeText(getContext(),
+            Toast.makeText(requireContext(),
                     "Per favore attendere il caricamento della posizione (segnaposto blu).",
                     Toast.LENGTH_SHORT).show();
         } else {
@@ -276,7 +288,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
     private boolean checkLocationPermission() {
         int fineLocationPermission =
-                ContextCompat.checkSelfPermission(getContext(),
+                ContextCompat.checkSelfPermission(requireContext(),
                         android.Manifest.permission.ACCESS_FINE_LOCATION);
         return fineLocationPermission == PackageManager.PERMISSION_GRANTED;
     }

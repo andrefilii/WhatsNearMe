@@ -1,27 +1,23 @@
-package it.andreafilippi.whatsnearme;
+package it.andreafilippi.whatsnearme.ui;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.MenuItem;
-import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.ActivityMainBinding;
-import it.andreafilippi.whatsnearme.ui.map.MapsFragment;
-import it.andreafilippi.whatsnearme.ui.settings.SettingsFragment;
+import it.andreafilippi.whatsnearme.ui.fragments.MapsFragment;
+import it.andreafilippi.whatsnearme.ui.fragments.SettingsFragment;
 
 public class MainActivity extends AppCompatActivity {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 420;

@@ -1,4 +1,4 @@
-package it.andreafilippi.whatsnearme.ui.settings;
+package it.andreafilippi.whatsnearme.ui.fragments;
 
 import android.os.Bundle;
 
