@@ -14,7 +14,6 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.nfc.NfcAdapter;
 import android.os.Bundle;
-import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -35,8 +34,6 @@ import com.google.android.material.chip.ChipGroup;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
@@ -85,7 +82,7 @@ public class MarkerDialog extends DialogFragment {
                 if (bondState == BluetoothDevice.BOND_BONDED) {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice.class);
                     if (device != null) {
-                        startBluetoothConnection(device);
+                        new Thread(() -> connectAndSendDataBluetooth(device)).start();
                     }
                 }
             }
@@ -144,8 +141,8 @@ public class MarkerDialog extends DialogFragment {
             // il dispositivo non supporta il bluetooth
             shareMenu.getMenu().findItem(R.id.option_bluetooth).setEnabled(false);
         } else {
-            IntentFilter f = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-            requireActivity().registerReceiver(deviceFoundReceiver, f);
+            IntentFilter f1 = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+            requireActivity().registerReceiver(deviceFoundReceiver, f1);
 
             IntentFilter f2 = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
             requireActivity().registerReceiver(bondChangedReceiver, f2);
@@ -168,6 +165,8 @@ public class MarkerDialog extends DialogFragment {
         requireActivity().unregisterReceiver(bondChangedReceiver);
     }
 
+    /* -- BUTTON LISTENERS -- */
+
     private void onCondividiBtnClick(View view) {
         shareMenu.show();
     }
@@ -180,6 +179,10 @@ public class MarkerDialog extends DialogFragment {
         intent.setPackage(null);
         startActivity(intent);
     }
+
+    /* ---------------------- */
+
+    /* -- GESTIONE MENU CONDIVISIONE -- */
 
     private boolean onMenuItemClickListener(MenuItem menuItem) {
         int menuItemId = menuItem.getItemId();
@@ -194,24 +197,14 @@ public class MarkerDialog extends DialogFragment {
         }
         if (menuItemId == R.id.option_other) {
             onShareMenuOtherClick();
+            return true;
         }
 
         return false;
     }
 
     private void onShareMenuNfcClick() {
-//        NdefRecord record = NdefRecord.createUri(getPlaceLocationUri());
-//        NdefMessage message = new NdefMessage(new NdefRecord[]{record});
-//
-//        if (nfcAdapter != null && nfcAdapter.isEnabled()) {
-//            Intent intent = new Intent(requireContext(), getClass());
-//            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-//            nfcAdapter.enableForegroundDispatch(requireActivity(), intent, null, null);
-//
-//            Toast.makeText(requireContext(), "Tocca un altro dispositivo per condividere la posizione", Toast.LENGTH_LONG).show();
-//        } else {
-//            Toast.makeText(requireContext(), "NFC non è abilitato", Toast.LENGTH_LONG).show();
-//        }
+        // TODO, forse non si può fare
     }
 
     private void onShareMenuBluetoothClick() {
@@ -223,10 +216,12 @@ public class MarkerDialog extends DialogFragment {
         }
         // è abilitato, inizio a cercare dispositivi vicini
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(requireContext(), "Per favore accettare e riprovare", Toast.LENGTH_SHORT).show();
             ActivityCompat.requestPermissions(requireActivity(),
                     new String[]{Manifest.permission.BLUETOOTH_SCAN}, REQUEST_ENABLE_BT_CODE);
             return;
         }
+
         devicesArrayAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_single_choice);
         BluetoothDeviceListDialog dialog = new BluetoothDeviceListDialog(devicesArrayAdapter, this::onBtListClick);
         dialog.show(getParentFragmentManager(), "bt_list_dialog");
@@ -234,10 +229,12 @@ public class MarkerDialog extends DialogFragment {
     }
 
     private void onBtListClick(DialogInterface dialog, int which) {
+        // ho selezionato un dispositivo, disattivo la ricerca
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
             bluetoothAdapter.cancelDiscovery();
         }
 
+        // recupero l'indirizzo MAC (è scritto nella lista)
         dialog.cancel();
         String deviceInfo = devicesArrayAdapter.getItem(which);
         String deviceMAC = deviceInfo.substring(deviceInfo.length() - 17);
@@ -246,8 +243,9 @@ public class MarkerDialog extends DialogFragment {
         BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceMAC);
         if(BluetoothDevice.BOND_BONDED == device.getBondState()) {
             // già connesso, inizio il trasferimento
-            new Thread(() -> startBluetoothConnection(device)).start();
+            new Thread(() -> connectAndSendDataBluetooth(device)).start();
         } else {
+            // provo a fare il pairing, se va a buon fine verrà chiamato il receiver definito sopra
             if (device.createBond())
                 Toast.makeText(requireContext(), "Inizio pairing", Toast.LENGTH_SHORT).show();
             else
@@ -270,7 +268,7 @@ public class MarkerDialog extends DialogFragment {
         return "https://maps.google.com/maps?q=" + place.getLat() + "," + place.getLng() + "+(" + place.getName().replace(" ", "+") + ")";
     }
 
-    private void startBluetoothConnection(BluetoothDevice device) {
+    private void connectAndSendDataBluetooth(BluetoothDevice device) {
         Log.d("BT DISCOVER", "Device selezionato: " + device);
 
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
@@ -279,18 +277,13 @@ public class MarkerDialog extends DialogFragment {
             return;
         }
 
-        ParcelUuid[] uuids = device.getUuids();
-        try {
-            //            UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-            BluetoothSocket bs = device.createInsecureRfcommSocketToServiceRecord(UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
-            //            Method m = device.getClass().getMethod("createRfcommSocket", int.class);
-            //            BluetoothSocket bs =  (BluetoothSocket) m.invoke(device, 1);
+        try (BluetoothSocket bs = device.createInsecureRfcommSocketToServiceRecord(UUID.fromString(getString(R.string.btConnectionUID)))) {
             // FINALMENTE, invio i dati
             bs.connect();
             OutputStream os = bs.getOutputStream();
             os.write(getPlaceLocationUri().getBytes(StandardCharsets.UTF_8));
             os.flush();
-            os.close();
+
         } catch (IOException e) {
             Log.e("BT CONNECT", e.toString());
             requireActivity().runOnUiThread(() -> {

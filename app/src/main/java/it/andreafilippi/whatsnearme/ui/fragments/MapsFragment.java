@@ -181,7 +181,6 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     private boolean onMarkerClick(Marker marker) {
         if (marker.getTag() != null) {
             // se ha il campo tag, significa che è un luogo di interesse e non la posizione
-            // TODO apertura dialog passando le informazioni
             Place place = (Place) marker.getTag();
             Log.d("MARKER CLICK", marker.toString());
 

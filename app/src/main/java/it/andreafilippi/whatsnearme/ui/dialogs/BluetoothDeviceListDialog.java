@@ -37,7 +37,5 @@ public class BluetoothDeviceListDialog extends DialogFragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-
-
     }
 }

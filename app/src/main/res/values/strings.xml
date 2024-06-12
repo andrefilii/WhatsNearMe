@@ -10,4 +10,7 @@
     <string name="condividi">Condividi</string>
     <string name="segna">Segna</string>
     <string name="indicazioni">Indicazioni</string>
+
+    <string name="btConnectionName">it.andreafilippi.whatsnearme receiver</string>
+    <string name="btConnectionUID">57ddae30-1aee-4aec-bba0-0488a8c35132</string>
 </resources>
