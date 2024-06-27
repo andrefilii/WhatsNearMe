@@ -23,6 +23,8 @@ import android.widget.ArrayAdapter;
 import android.widget.PopupMenu;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
@@ -42,7 +44,8 @@ import it.andreafilippi.whatsnearme.databinding.DialogMarkerBinding;
 import it.andreafilippi.whatsnearme.entities.Place;
 
 public class MarkerDialog extends DialogFragment {
-    private static final int REQUEST_ENABLE_BT_CODE = 69;
+
+    private ActivityResultLauncher<String[]> bluetoothScanPermissionLauncher;
 
     private DialogMarkerBinding binding;
     private Place place;
@@ -52,17 +55,13 @@ public class MarkerDialog extends DialogFragment {
     private ArrayAdapter<String> devicesArrayAdapter;
 
     private final BroadcastReceiver deviceFoundReceiver = new BroadcastReceiver() {
+        @SuppressWarnings("MissingPermission")
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 // trovato un dispositivo
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice.class);
-                if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(requireActivity(),
-                            new String[]{Manifest.permission.BLUETOOTH_CONNECT}, REQUEST_ENABLE_BT_CODE);
-                    return;
-                }
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC
                 Log.d("BT DISCOVER", deviceName + " " + deviceHardwareAddress);
@@ -82,7 +81,7 @@ public class MarkerDialog extends DialogFragment {
                 if (bondState == BluetoothDevice.BOND_BONDED) {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice.class);
                     if (device != null) {
-                        new Thread(() -> connectAndSendDataBluetooth(device)).start();
+                        startBtConnection(device);
                     }
                 }
             }
@@ -91,6 +90,23 @@ public class MarkerDialog extends DialogFragment {
 
     public MarkerDialog(Place place) {
         this.place = place;
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        bluetoothScanPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestMultiplePermissions(),
+                result -> {
+                    Boolean btScanGranted = result.getOrDefault(Manifest.permission.BLUETOOTH_SCAN, false);
+                    Boolean btConnectGranted = result.getOrDefault(Manifest.permission.BLUETOOTH_CONNECT, false);
+                    if (btScanGranted && btConnectGranted) {
+                        startBtDiscovery();
+                    } else {
+                        Toast.makeText(getContext(), "Permesso negato :(", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     @Nullable
@@ -215,13 +231,17 @@ public class MarkerDialog extends DialogFragment {
             return;
         }
         // è abilitato, inizio a cercare dispositivi vicini
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(requireContext(), "Per favore accettare e riprovare", Toast.LENGTH_SHORT).show();
-            ActivityCompat.requestPermissions(requireActivity(),
-                    new String[]{Manifest.permission.BLUETOOTH_SCAN}, REQUEST_ENABLE_BT_CODE);
-            return;
+            bluetoothScanPermissionLauncher.launch(new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT});
+        } else {
+            startBtDiscovery();
         }
+    }
 
+    @SuppressWarnings("MissingPermission")
+    private void startBtDiscovery() {
         devicesArrayAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_single_choice);
         BluetoothDeviceListDialog dialog = new BluetoothDeviceListDialog(devicesArrayAdapter, this::onBtListClick);
         dialog.show(getParentFragmentManager(), "bt_list_dialog");
@@ -243,7 +263,7 @@ public class MarkerDialog extends DialogFragment {
         BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceMAC);
         if(BluetoothDevice.BOND_BONDED == device.getBondState()) {
             // già connesso, inizio il trasferimento
-            new Thread(() -> connectAndSendDataBluetooth(device)).start();
+            startBtConnection(device);
         } else {
             // provo a fare il pairing, se va a buon fine verrà chiamato il receiver definito sopra
             if (device.createBond())
@@ -268,14 +288,13 @@ public class MarkerDialog extends DialogFragment {
         return "https://maps.google.com/maps?q=" + place.getLat() + "," + place.getLng() + "+(" + place.getName().replace(" ", "+") + ")";
     }
 
+    private void startBtConnection(BluetoothDevice device) {
+        new Thread(() -> connectAndSendDataBluetooth(device)).start();
+    }
+
+    @SuppressWarnings("MissingPermission")
     private void connectAndSendDataBluetooth(BluetoothDevice device) {
         Log.d("BT DISCOVER", "Device selezionato: " + device);
-
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(requireActivity(),
-                    new String[]{Manifest.permission.BLUETOOTH_CONNECT}, REQUEST_ENABLE_BT_CODE);
-            return;
-        }
 
         try (BluetoothSocket bs = device.createInsecureRfcommSocketToServiceRecord(UUID.fromString(getString(R.string.btConnectionUID)))) {
             // FINALMENTE, invio i dati

@@ -14,6 +14,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -36,6 +38,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 420;
     private static final int BT_CONNECTION_REQUEST_CODE = 111;
 
+    private ActivityResultLauncher<String> locationPermissionLauncher;
+    private ActivityResultLauncher<String> btConnectionPermissionLauncher;
+
     private ActivityMainBinding binding;
 
     private FragmentManager fragmentManager;
@@ -53,6 +58,28 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        /* Creazione launcher per permessi a runtime */
+        locationPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    if (isGranted) {
+                        loadFragment(mapsFragment);
+                    } else {
+                        // TODO sostituire con diario
+                        loadFragment(null);
+                    }
+                });
+
+        btConnectionPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    if (isGranted) {
+                        openBtConnectionDialog();
+                    } else {
+                        Toast.makeText(this, "Necessari i permessi per ricevere i dati!", Toast.LENGTH_LONG).show();
+                    }
+                });
+
         // configurazione btn per ricevere i link condivisi
         BluetoothManager btManager = getSystemService(BluetoothManager.class);
         btAdapter = btManager.getAdapter();
@@ -69,18 +96,15 @@ public class MainActivity extends AppCompatActivity {
         fragmentManager = getSupportFragmentManager();
 
         mapsFragment = new MapsFragment();
-        // diarioFragment
+        // diarioFragment = new DiarioFragment();
         settingsFragment = new SettingsFragment();
 
         // verifico permessi per la posizione
         if (checkLocationPermission()) {
-            currentFragment = mapsFragment;
-            fragmentManager.beginTransaction()
-                    .add(binding.fragmentContainer.getId(), mapsFragment)
-                    .commit();
+            loadFragment(mapsFragment);
         } else {
             // non ho i permessi, chiedo a runtime
-            requestLocationPermission();
+            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
         }
     }
 
@@ -101,55 +125,11 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    private void onBtBtnClick(View view) {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.BLUETOOTH_CONNECT},
-                    BT_CONNECTION_REQUEST_CODE);
-            return;
-        }
-        new Thread(() -> connectAndReceiveData()).start();
-    }
-
-    private void connectAndReceiveData() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        // TODO forse aprire un dialog che indica che si è in ascolto e il timer di massima attesa che scende
-        try (BluetoothServerSocket bss =
-                     btAdapter.listenUsingRfcommWithServiceRecord(
-                             getString(R.string.btConnectionName),
-                             UUID.fromString(getString(R.string.btConnectionUID)))) {
-            try (BluetoothSocket bs = bss.accept(60000)) {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(bs.getInputStream()))) {
-                    StringBuilder builder = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        builder.append(line).append("\n");
-                    }
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, "Messaggio ricevuto: " + builder, Toast.LENGTH_LONG).show();
-                        Log.d("BT RECEIVED", builder.toString());
-                    });
-                } catch (IOException e) {
-                    Log.e("BT CONNECTION", e.toString());
-                }
-            } catch (IOException e) {
-                Log.e("BT CONNECTION", e.toString());
-            }
-        } catch (IOException e) {
-            Log.e("BT CONNECTION", e.toString());
-            runOnUiThread(() -> {
-                Toast.makeText(this, "Errore in fase di connessione", Toast.LENGTH_SHORT).show();
-            });
-        }
-    }
-
     private void loadFragment(Fragment fragment) {
         if (fragment != null && fragment != currentFragment) {
             FragmentTransaction transaction = fragmentManager.beginTransaction();
             if (currentFragment != null)
-                    transaction.hide(currentFragment);
+                transaction.hide(currentFragment);
             transaction.replace(binding.fragmentContainer.getId(), fragment)
                     .show(fragment)
                     .commit();
@@ -164,54 +144,54 @@ public class MainActivity extends AppCompatActivity {
         return fineLocationPermission == PackageManager.PERMISSION_GRANTED;
     }
 
-    private void requestLocationPermission() {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                android.Manifest.permission.ACCESS_FINE_LOCATION)) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Permesso di accesso alla posizione rischiesto")
-                    .setMessage("Questa applicazione richiede là accesso alla posizione per " +
-                            "funzionare correttamente.Se si nega l'accesso le funzioni " +
-                            "disponiibili saranno limitate al solo diario di viaggio.")
-                    .setPositiveButton("OK", this::onDialogPositiveBtnClick)
-                    .setNegativeButton("Annulla", this::onDialogNegativeBtnClick)
-                    .create()
-                    .show();
+
+    /* GESTIONE RICEVITORE BT */
+
+    private void onBtBtnClick(View view) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            btConnectionPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT);
         } else {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
-                    LOCATION_PERMISSION_REQUEST_CODE);
+            openBtConnectionDialog();
         }
     }
 
-    private void onDialogPositiveBtnClick(DialogInterface dialog, int which) {
-        // chiedo i permessi
-        ActivityCompat.requestPermissions(this,
-                new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
-                LOCATION_PERMISSION_REQUEST_CODE);
+    private void openBtConnectionDialog() {
+        // TODO creare un dialog o qualcosa del genere per eventualmente interrompere la connessione
+        //  e mostrare un timer massimo di attesa aggiornato dalla funzione di connessione
+        //  la funzione scrive anche il risultato su questo dialog
+        new Thread(this::connectAndReceiveData).start();
     }
 
-    private void onDialogNegativeBtnClick(DialogInterface dialog, int which) {
-        dialog.dismiss();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            // ho ricevuto la risposta alla richiesta del permesso sulla localizzazione
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // permessi concessi
-                loadFragment(mapsFragment);
-            } else {
-                // permessi non concessi, disattivo le mappe
-                loadFragment(null); // TODO sostituire null con diarioFragment
+    @SuppressWarnings("MissingPermission")
+    private void connectAndReceiveData() {
+        // TODO forse aprire un dialog che indica che si è in ascolto e il timer di massima attesa che scende
+        try (BluetoothServerSocket bss =
+                     btAdapter.listenUsingRfcommWithServiceRecord(
+                             getString(R.string.btConnectionName),
+                             UUID.fromString(getString(R.string.btConnectionUID)))) {
+            try (BluetoothSocket bs = bss.accept(60000)) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(bs.getInputStream()))) {
+                    StringBuilder builder = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        builder.append(line).append("\n");
+                    }
+                    runOnUiThread(() -> {
+                        // TODO far diventare una notifica o qualcosa del genere
+                        Toast.makeText(this, "Messaggio ricevuto: " + builder, Toast.LENGTH_LONG).show();
+                        Log.d("BT RECEIVED", builder.toString());
+                    });
+                } catch (IOException e) {
+                    Log.e("BT CONNECTION", e.toString());
+                }
+            } catch (IOException e) {
+                Log.e("BT CONNECTION", e.toString());
             }
-        } else if (requestCode == BT_CONNECTION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // permesso di connessione concesso
-                new Thread(() -> connectAndReceiveData()).start();
-            }
+        } catch (IOException e) {
+            Log.e("BT CONNECTION", e.toString());
+            runOnUiThread(() -> {
+                Toast.makeText(this, "Errore in fase di connessione", Toast.LENGTH_SHORT).show();
+            });
         }
     }
 }
