@@ -35,8 +35,6 @@ import it.andreafilippi.whatsnearme.ui.fragments.MapsFragment;
 import it.andreafilippi.whatsnearme.ui.fragments.SettingsFragment;
 
 public class MainActivity extends AppCompatActivity {
-    private static final int LOCATION_PERMISSION_REQUEST_CODE = 420;
-    private static final int BT_CONNECTION_REQUEST_CODE = 111;
 
     private ActivityResultLauncher<String> locationPermissionLauncher;
     private ActivityResultLauncher<String> btConnectionPermissionLauncher;
