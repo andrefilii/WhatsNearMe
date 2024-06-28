@@ -31,6 +31,7 @@ import java.util.UUID;
 
 import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.ActivityMainBinding;
+import it.andreafilippi.whatsnearme.ui.fragments.DiarioFragment;
 import it.andreafilippi.whatsnearme.ui.fragments.MapsFragment;
 import it.andreafilippi.whatsnearme.ui.fragments.SettingsFragment;
 
@@ -44,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private FragmentManager fragmentManager;
 
     private MapsFragment mapsFragment;
+    private DiarioFragment diarioFragment;
     private SettingsFragment settingsFragment;
 
     private Fragment currentFragment;
@@ -63,8 +65,7 @@ public class MainActivity extends AppCompatActivity {
                     if (isGranted) {
                         loadFragment(mapsFragment);
                     } else {
-                        // TODO sostituire con diario
-                        loadFragment(null);
+                        loadFragment(diarioFragment);
                     }
                 });
 
@@ -94,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
         fragmentManager = getSupportFragmentManager();
 
         mapsFragment = new MapsFragment();
-        // diarioFragment = new DiarioFragment();
+        diarioFragment = new DiarioFragment();
         settingsFragment = new SettingsFragment();
 
         // verifico permessi per la posizione
@@ -112,8 +113,8 @@ public class MainActivity extends AppCompatActivity {
         int itemId = menuItem.getItemId();
         if (itemId == R.id.navigation_map) {
             selected = mapsFragment;
-        } else if (itemId == R.id.navigation_other) {
-//            selected = otherFragment;
+        } else if (itemId == R.id.navigation_diary) {
+            selected = diarioFragment;
         } else if (itemId == R.id.navigation_settings) {
             selected = settingsFragment;
         }

@@ -191,11 +191,14 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     private void updateUserLocationOnMap(Location location) {
         LatLng position = new LatLng(location.getLatitude(), location.getLongitude());
 
+        // TODO capire come aggiornare il marker invece di rimuoverlo e ricrearlo ogni volta
+
         if (currentLocationMarker != null)
             currentLocationMarker.remove();
         if (searchRadiusCircle != null)
             searchRadiusCircle.remove();
 
+        // TODO marker personalizzato
         currentLocationMarker =
                 myMap.addMarker(new MarkerOptions()
                         .position(position)

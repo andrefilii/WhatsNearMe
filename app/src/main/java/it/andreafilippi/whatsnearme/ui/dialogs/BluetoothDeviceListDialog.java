@@ -24,7 +24,7 @@ public class BluetoothDeviceListDialog extends DialogFragment {
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         super.onCreateDialog(savedInstanceState);
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireActivity());
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Dispositivi Bluetooth nelle vicinanze");
         builder.setAdapter(devicesAdapter, (dialog, which) -> {
             if (callback != null)

@@ -26,9 +26,9 @@ import it.andreafilippi.whatsnearme.params.PlacesTaskParam;
 public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
     /* DA RIMUOVERE, PER TEST */
     private static final Place[] testPlaces = {
-            new Place().setName("Museo Città di Livorno").setLat(43.5551451).setLng(10.3071166),
-            new Place().setName("Museo Fortezza Vecchia").setLat(43.5527328).setLng(10.3021199),
-            new Place().setName("Museo Piazza Grande").setLat(43.5506926).setLng(10.3089171).setTags(List.of("Ciao", "Git", "Git pull", "Git fetch remote"))
+            new Place().setId("MCDL0000000000").setName("Museo Città di Livorno").setLat(43.5551451).setLng(10.3071166),
+            new Place().setId("MFVA0000000000").setName("Museo Fortezza Vecchia").setLat(43.5527328).setLng(10.3021199),
+            new Place().setId("MPGA0000000000").setName("Museo Piazza Grande").setLat(43.5506926).setLng(10.3089171).setTags(List.of("Ciao", "Git", "Git pull", "Git fetch remote"))
     };
 
     private static final String ENDPOINT = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?";
@@ -60,7 +60,7 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
         else
             markers.clear();
 
-        boolean x = false;
+        boolean x = false; // TODO rimuovere, solo per DEBUG
         if (x) {
             try {
                 String jsonData = DownloadUrl.performRequest(createRequest());
@@ -74,6 +74,8 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
 
                         JSONObject result = jsonArray.getJSONObject(i);
                         JSONObject location = result.getJSONObject("geometry").getJSONObject("location");
+
+                        place.setId(result.getString("place_id"));
 
                         place.setName(result.getString("name"));
 

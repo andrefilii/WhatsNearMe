@@ -5,7 +5,7 @@
         android:icon="@drawable/ic_map"
         android:title="@string/map" />
     <item
-        android:id="@+id/navigation_other"
+        android:id="@+id/navigation_diary"
         android:icon="@drawable/ic_diary"
         android:title="@string/diary" />
     <item

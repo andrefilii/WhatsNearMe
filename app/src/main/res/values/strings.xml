@@ -12,8 +12,10 @@
     <string name="indicazioni">Indicazioni</string>
 
     <string name="btConnectionName">it.andreafilippi.whatsnearme receiver</string>
-<!--    <string name="btConnectionUID">57ddae30-1aee-4aec-bba0-0488a8c35132</string>-->
+    <!--    <string name="btConnectionUID">57ddae30-1aee-4aec-bba0-0488a8c35132</string>-->
 
-<!--    PORTA SERIALE STANDARD PER TEST: -->
+    <!--    PORTA SERIALE STANDARD PER TEST: -->
     <string name="btConnectionUID">00001101-0000-1000-8000-00805f9b34fb</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

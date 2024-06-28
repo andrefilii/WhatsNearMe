@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -42,6 +43,7 @@ import java.util.UUID;
 import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.DialogMarkerBinding;
 import it.andreafilippi.whatsnearme.entities.Place;
+import it.andreafilippi.whatsnearme.utils.DatabaseHelper;
 
 public class MarkerDialog extends DialogFragment {
 
@@ -53,6 +55,7 @@ public class MarkerDialog extends DialogFragment {
     private NfcAdapter nfcAdapter;
     private BluetoothAdapter bluetoothAdapter;
     private ArrayAdapter<String> devicesArrayAdapter;
+    private DatabaseHelper databaseHelper;
 
     private final BroadcastReceiver deviceFoundReceiver = new BroadcastReceiver() {
         @SuppressWarnings("MissingPermission")
@@ -127,6 +130,9 @@ public class MarkerDialog extends DialogFragment {
         binding.segnaVisitatoBtn.setOnClickListener(this::onSegnaVisitatoBtnClick);
         binding.condividiBtn.setOnClickListener(this::onCondividiBtnClick);
 
+        databaseHelper = new DatabaseHelper(requireContext());
+        // TODO controllare se il luogo è già segnato come visitato, e nel caso cambiare icona
+
         if (place.getTags() != null) {
             //creazione chips
             ChipGroup chipGroup = binding.chipGroup;
@@ -179,6 +185,8 @@ public class MarkerDialog extends DialogFragment {
         super.onDestroy();
         requireActivity().unregisterReceiver(deviceFoundReceiver);
         requireActivity().unregisterReceiver(bondChangedReceiver);
+
+        databaseHelper.close();
     }
 
     /* -- BUTTON LISTENERS -- */
@@ -188,6 +196,19 @@ public class MarkerDialog extends DialogFragment {
     }
 
     private void onSegnaVisitatoBtnClick(View view) {
+        // TODO se il luogo è già visitato il pulsante serve a rimuoverlo dal db
+        // if <luogo gia visitato> then database.removeLuogo(place.getId)
+
+        // TODO far scattare la foto
+
+        new Thread(() -> {
+            if (databaseHelper.addLuogo(place, null) != 1) {
+                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Luogo salvato con successo nel diario!", Toast.LENGTH_SHORT).show());
+            } else {
+                // TODO gestire errore oltre al dialog immagino eliminare la foto salvata
+            }
+
+        }).start();
     }
 
     private void onIndicazioniBtnClick(View view) {
