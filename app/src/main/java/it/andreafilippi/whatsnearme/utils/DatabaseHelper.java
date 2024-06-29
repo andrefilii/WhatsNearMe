@@ -58,4 +58,21 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "SELECT * FROM " + TABLE_NAME + " ORDER BY " + COLUMN_CREATE_TS + " DESC",
                 null);
     }
+
+    public boolean doesLuogoExist(String id) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT 1 FROM " + TABLE_NAME + " WHERE " + COLUMN_ID + " = ? LIMIT 1", new String[]{id});
+
+        boolean exists = (cursor != null && cursor.getCount() > 0);
+        if (cursor != null) cursor.close();
+
+        return exists;
+    }
+
+    public boolean removeLuogo(String id) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        int rowsAffected = db.delete(TABLE_NAME, COLUMN_ID + " = ?", new String[]{id});
+        db.close();
+        return rowsAffected > 0;
+    }
 }

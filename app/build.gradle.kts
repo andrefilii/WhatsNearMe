@@ -41,6 +41,14 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
 
+    implementation(libs.camera.core)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.video)
+    implementation(libs.camera.view)
+    implementation(libs.camera.mlkit.vision)
+    implementation(libs.camera.extensions)
+
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)

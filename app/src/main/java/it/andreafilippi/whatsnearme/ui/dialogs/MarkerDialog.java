@@ -1,6 +1,7 @@
 package it.andreafilippi.whatsnearme.ui.dialogs;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -39,6 +40,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.DialogMarkerBinding;
@@ -56,6 +59,7 @@ public class MarkerDialog extends DialogFragment {
     private BluetoothAdapter bluetoothAdapter;
     private ArrayAdapter<String> devicesArrayAdapter;
     private DatabaseHelper databaseHelper;
+    private Boolean isLuogoGiaVisitato;
 
     private final BroadcastReceiver deviceFoundReceiver = new BroadcastReceiver() {
         @SuppressWarnings("MissingPermission")
@@ -104,10 +108,10 @@ public class MarkerDialog extends DialogFragment {
                 result -> {
                     Boolean btScanGranted = result.getOrDefault(Manifest.permission.BLUETOOTH_SCAN, false);
                     Boolean btConnectGranted = result.getOrDefault(Manifest.permission.BLUETOOTH_CONNECT, false);
-                    if (btScanGranted && btConnectGranted) {
+                    if (Boolean.TRUE.equals(btScanGranted) && Boolean.TRUE.equals(btConnectGranted)) {
                         startBtDiscovery();
                     } else {
-                        Toast.makeText(getContext(), "Permesso negato :(", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), "Permesso negato :(", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -131,7 +135,8 @@ public class MarkerDialog extends DialogFragment {
         binding.condividiBtn.setOnClickListener(this::onCondividiBtnClick);
 
         databaseHelper = new DatabaseHelper(requireContext());
-        // TODO controllare se il luogo è già segnato come visitato, e nel caso cambiare icona
+        isLuogoGiaVisitato = null;
+        new Thread(() -> isLuogoGiaVisitato = databaseHelper.doesLuogoExist(place.getId())).start();
 
         if (place.getTags() != null) {
             //creazione chips
@@ -177,12 +182,13 @@ public class MarkerDialog extends DialogFragment {
     public void onPause() {
         super.onPause();
         if (nfcAdapter != null)
-            nfcAdapter.disableForegroundDispatch(getActivity());
+            nfcAdapter.disableForegroundDispatch(requireActivity());
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+
         requireActivity().unregisterReceiver(deviceFoundReceiver);
         requireActivity().unregisterReceiver(bondChangedReceiver);
 
@@ -196,13 +202,40 @@ public class MarkerDialog extends DialogFragment {
     }
 
     private void onSegnaVisitatoBtnClick(View view) {
-        // TODO se il luogo è già visitato il pulsante serve a rimuoverlo dal db
-        // if <luogo gia visitato> then database.removeLuogo(place.getId)
+        if (isLuogoGiaVisitato == null) {
+            Toast.makeText(requireContext(), "Attendere il caricamento dei dati", Toast.LENGTH_SHORT).show();
+            return;
+        } else if (isLuogoGiaVisitato) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Conferma rimozione")
+                    .setMessage("Sei sicuro di voler rimuovere il luogo dal diario di viaggio?")
+                    .setPositiveButton("Si", (dialog, which) -> {
+                        isLuogoGiaVisitato = null;
+                        new Thread(() -> {
+                            if (databaseHelper.removeLuogo(place.getId())) {
+                                // è andato a buon fine
+                                // TODO ricambiare icona del pulsante
+                                isLuogoGiaVisitato = false;
+                                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Luogo rimosso dal diario", Toast.LENGTH_SHORT).show());
+                            } else {
+                                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Errore durante la rimozione", Toast.LENGTH_SHORT).show());
+                            }
+                        }).start();
+                        dialog.dismiss();
+                    })
+                    .setNegativeButton("No", (dialog, which) -> {
+                        dialog.dismiss();
+                    })
+                    .create()
+                    .show();
+            return;
+        }
 
-        // TODO far scattare la foto
+        // TODO logica per scattare foto
 
         new Thread(() -> {
-            if (databaseHelper.addLuogo(place, null) != 1) {
+            if (databaseHelper.addLuogo(place, null) != -1) {
+                isLuogoGiaVisitato = true;
                 requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Luogo salvato con successo nel diario!", Toast.LENGTH_SHORT).show());
             } else {
                 // TODO gestire errore oltre al dialog immagino eliminare la foto salvata

@@ -2,6 +2,8 @@ package it.andreafilippi.whatsnearme.ui.fragments;
 
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
@@ -25,6 +27,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.Circle;
@@ -67,12 +70,17 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
     private List<Marker> mapMarkers;
 
+    private BitmapDescriptor userLocationIcon;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         binding = FragmentMapsBinding.inflate(inflater, container, false);
+
+        // creazione della bitmap per l'icona della posizione utente
+        userLocationIcon = creaIconaPosizione();
 
         // salvo il preference manager
         settings = PreferenceManager.getDefaultSharedPreferences(requireContext());
@@ -95,6 +103,12 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         binding.btnATM.setOnClickListener(this::onBtnATMClick);
 
         return binding.getRoot();
+    }
+
+    private BitmapDescriptor creaIconaPosizione() {
+        Bitmap icona = BitmapFactory.decodeResource(getResources(), R.drawable.ic_user_location);
+        Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth()*0.45), (int) (icona.getHeight()*0.45), false);
+        return BitmapDescriptorFactory.fromBitmap(resisezIcon);
     }
 
     @Override
@@ -124,6 +138,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     public void onPause() {
         super.onPause();
         flpc.removeLocationUpdates(locationUpdateCallback);
+        currentLocationMarker = null;
     }
 
     @Override
@@ -168,7 +183,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             Place place = (Place) marker.getTag();
             Log.d("MARKER CLICK", marker.toString());
 
-            new MarkerDialog(place).show(getActivity().getSupportFragmentManager(), "MarkerDialog");
+            new MarkerDialog(place).show(requireActivity().getSupportFragmentManager(), "MarkerDialog");
 
             return true;
         }
@@ -191,19 +206,18 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     private void updateUserLocationOnMap(Location location) {
         LatLng position = new LatLng(location.getLatitude(), location.getLongitude());
 
-        // TODO capire come aggiornare il marker invece di rimuoverlo e ricrearlo ogni volta
-
-        if (currentLocationMarker != null)
-            currentLocationMarker.remove();
         if (searchRadiusCircle != null)
             searchRadiusCircle.remove();
 
-        // TODO marker personalizzato
-        currentLocationMarker =
-                myMap.addMarker(new MarkerOptions()
-                        .position(position)
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-                        .title("Tu sei qui"));
+        if (currentLocationMarker == null) {
+            currentLocationMarker =
+                    myMap.addMarker(new MarkerOptions()
+                            .position(position)
+                            .icon(userLocationIcon)
+                            .title("Tu sei qui"));
+        } else {
+            currentLocationMarker.setPosition(position);
+        }
 
         searchRadiusCircle = myMap.addCircle(new CircleOptions()
                 .center(position)
@@ -226,7 +240,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     private void onBtnATMClick(View view) {
         if (currentLocationMarker == null) {
             Toast.makeText(requireContext(),
-                    "Per favore attendere il caricamento della posizione (segnaposto blu).",
+                    "Per favore attendere il caricamento della posizione",
                     Toast.LENGTH_SHORT).show();
         } else {
             fetchPlaces(Place.Category.ATM);
@@ -236,7 +250,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     private void onBtnMuseumsClick(View view) {
         if (currentLocationMarker == null) {
             Toast.makeText(requireContext(),
-                    "Per favore attendere il caricamento della posizione (segnaposto blu).",
+                    "Per favore attendere il caricamento della posizione",
                     Toast.LENGTH_SHORT).show();
         } else {
             fetchPlaces(Place.Category.MUSEUM);
@@ -246,7 +260,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     private void onBtnRestaurantsClick(View view) {
         if (currentLocationMarker == null) {
             Toast.makeText(requireContext(),
-                    "Per favore attendere il caricamento della posizione (segnaposto blu).",
+                    "Per favore attendere il caricamento della posizione",
                     Toast.LENGTH_SHORT).show();
         } else {
             fetchPlaces(Place.Category.RESTAURANT);
@@ -284,7 +298,8 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     }
 
     private int getZoomLevel() {
-        double radius = getSearchRadius() + getSearchRadius()/2.0;
+        int searchRadius = getSearchRadius();
+        double radius = searchRadius + searchRadius/2.0;
         double scale = radius / 500.0;
         return (int) (16 - Math.log(scale) / Math.log(2));
     }

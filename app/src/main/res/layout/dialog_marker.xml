@@ -38,15 +38,15 @@
             android:id="@+id/segnaVisitatoBtn"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="@string/segna"
-            android:layout_weight="1"/>
+            android:layout_weight="1"
+            android:drawableLeft="@drawable/ic_visited_no"/>
 
         <Button
             android:id="@+id/condividiBtn"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="@string/condividi"
-            android:layout_weight="1"/>
+            android:layout_weight="1"
+            android:drawableLeft="@drawable/ic_share"/>
     </LinearLayout>
 
 </RelativeLayout>
