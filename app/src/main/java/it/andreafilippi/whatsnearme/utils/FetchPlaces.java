@@ -121,6 +121,7 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
             marker.setTag(place);
             markers.add(marker);
         }
+        // TODO mettere anche le icone personalizzate in base alla categoria della ricerca
     }
 
     @Override

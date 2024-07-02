@@ -1,8 +1,9 @@
 package it.andreafilippi.whatsnearme.entities;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class Place {
+public class Place implements Serializable {
     private String id;
     private String name;
     private List<String> tags;
@@ -61,12 +62,10 @@ public class Place {
 
         private final String description;
 
-        // Costruttore
-        private Category(String description) {
+        Category(String description) {
             this.description = description;
         }
 
-        // Metodo per ottenere la descrizione
         public String getDescription() {
             return this.description;
         }

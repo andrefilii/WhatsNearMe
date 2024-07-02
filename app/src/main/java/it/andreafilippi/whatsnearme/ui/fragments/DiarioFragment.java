@@ -14,6 +14,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import java.io.Serializable;
+
 import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.FragmentDiarioBinding;
 import it.andreafilippi.whatsnearme.utils.DatabaseHelper;
@@ -24,6 +26,16 @@ public class DiarioFragment extends Fragment {
 
     private DatabaseHelper databaseHelper;
     private LuoghiAdapter adapter;
+
+
+    public static DiarioFragment newInstance() {
+        DiarioFragment df = new DiarioFragment();
+        return df;
+    }
+
+    public DiarioFragment() {
+
+    }
 
     @Nullable
     @Override

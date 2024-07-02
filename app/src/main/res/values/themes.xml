@@ -20,4 +20,15 @@
         <item name="android:layout_marginStart">4dp</item>
         <item name="android:layout_marginEnd">4dp</item>
     </style>
+
+    <style name="ThemeOverlay.WhatsNearMe.FullscreenContainer" parent="">
+        <item name="fullscreenBackgroundColor">@color/light_blue_600</item>
+        <item name="fullscreenTextColor">@color/light_blue_A200</item>
+    </style>
+    <style name="Theme.WhatsNearMe.Fullscreen" parent="Theme.WhatsNearMe">
+        <item name="android:actionBarStyle">@style/Widget.Theme.WhatsNearMe.ActionBar.Fullscreen
+        </item>
+        <item name="android:windowActionBarOverlay">true</item>
+        <item name="android:windowBackground">@null</item>
+    </style>
 </resources>

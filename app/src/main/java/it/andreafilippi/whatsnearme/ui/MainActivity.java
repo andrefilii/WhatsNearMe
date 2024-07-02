@@ -36,6 +36,10 @@ import it.andreafilippi.whatsnearme.ui.fragments.MapsFragment;
 import it.andreafilippi.whatsnearme.ui.fragments.SettingsFragment;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String MAP_FRAG = "map_frag";
+    private static final String DIARY_FRAG = "diary_frag";
+    private static final String SETTINGS_FRAG = "settings_frag";
+    private static final String CUR_FRAG = "cur_frag";
 
     private ActivityResultLauncher<String> locationPermissionLauncher;
     private ActivityResultLauncher<String> btConnectionPermissionLauncher;
@@ -62,11 +66,13 @@ public class MainActivity extends AppCompatActivity {
         locationPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
-                    if (isGranted) {
-                        loadFragment(mapsFragment);
-                    } else {
-                        loadFragment(diarioFragment);
-                    }
+                    firstLoad(isGranted);
+//                    if (isGranted) {
+//                        loadFragment(mapsFragment);
+////                        firstLoad(true);
+//                    } else {
+//                        loadFragment(diarioFragment);
+//                    }
                 });
 
         btConnectionPermissionLauncher = registerForActivityResult(
@@ -94,17 +100,123 @@ public class MainActivity extends AppCompatActivity {
 
         fragmentManager = getSupportFragmentManager();
 
-        mapsFragment = new MapsFragment();
-        diarioFragment = new DiarioFragment();
-        settingsFragment = new SettingsFragment();
+        if (savedInstanceState != null) {
+//            mapsFragment = savedInstanceState.getSerializable("map_frag", MapsFragment.class);
+//            diarioFragment = savedInstanceState.getSerializable("diario_frag", DiarioFragment.class);
+//            settingsFragment = savedInstanceState.getSerializable("settings_frag", SettingsFragment.class);
+//
+//            switch (savedInstanceState.getInt("cur_frag")) {
+//                case 0:
+//                    currentFragment = mapsFragment;
+//                    binding.navigationBar.setSelectedItemId(R.id.navigation_map);
+//                    break;
+//                case 1:
+//                    currentFragment = diarioFragment;
+//                    binding.navigationBar.setSelectedItemId(R.id.navigation_diary);
+//                    break;
+//                case 2:
+//                    currentFragment = settingsFragment;
+//                    binding.navigationBar.setSelectedItemId(R.id.navigation_settings);
+//                    break;
+//            }
+            mapsFragment = (MapsFragment) getSupportFragmentManager().getFragment(savedInstanceState, MAP_FRAG);
+            diarioFragment = (DiarioFragment) getSupportFragmentManager().getFragment(savedInstanceState, DIARY_FRAG);
+            settingsFragment = (SettingsFragment) getSupportFragmentManager().getFragment(savedInstanceState, SETTINGS_FRAG);
 
-        // verifico permessi per la posizione
-        if (checkLocationPermission()) {
-            loadFragment(mapsFragment);
+//            currentFragment = getSupportFragmentManager().getFragment(savedInstanceState, CUR_FRAG);
+//            if (currentFragment != null) {
+//                if (currentFragment instanceof MapsFragment)
+//                    binding.navigationBar.setSelectedItemId(R.id.navigation_map);
+//                else if (currentFragment instanceof DiarioFragment)
+//                    binding.navigationBar.setSelectedItemId(R.id.navigation_diary);
+//                else
+//                    binding.navigationBar.setSelectedItemId(R.id.navigation_settings);
+//            }
+            switch (savedInstanceState.getInt(CUR_FRAG)) {
+                case 0:
+                    currentFragment = mapsFragment;
+                    binding.navigationBar.setSelectedItemId(R.id.navigation_map);
+                    break;
+                case 1:
+                    currentFragment = diarioFragment;
+                    binding.navigationBar.setSelectedItemId(R.id.navigation_diary);
+                    break;
+                case 2:
+                    currentFragment = settingsFragment;
+                    binding.navigationBar.setSelectedItemId(R.id.navigation_settings);
+                    break;
+            }
         } else {
-            // non ho i permessi, chiedo a runtime
-            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
+            mapsFragment = MapsFragment.newInstance();
+            diarioFragment = DiarioFragment.newInstance();
+            settingsFragment = SettingsFragment.newInstance();
+
+            // verifico permessi per la posizione
+            if (checkLocationPermission()) {
+//                loadFragment(mapsFragment);
+                firstLoad(true);
+            } else {
+                // non ho i permessi, chiedo a runtime
+                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
+            }
         }
+    }
+
+    private void firstLoad(boolean withPositionPermission) {
+        if (withPositionPermission) {
+            fragmentManager.beginTransaction()
+                    .add(R.id.fragment_container, mapsFragment, MAP_FRAG)
+                    .add(R.id.fragment_container, diarioFragment, DIARY_FRAG)
+                    .add(R.id.fragment_container, settingsFragment, SETTINGS_FRAG)
+                    .hide(diarioFragment)
+                    .hide(settingsFragment)
+                    .show(mapsFragment)
+                    .commit();
+            currentFragment = mapsFragment;
+        } else {
+            // non ho i permessi, mostro direttamente il diario
+            fragmentManager.beginTransaction()
+                    .add(R.id.fragment_container, mapsFragment, MAP_FRAG)
+                    .add(R.id.fragment_container, diarioFragment, DIARY_FRAG)
+                    .add(R.id.fragment_container, settingsFragment, SETTINGS_FRAG)
+                    .hide(mapsFragment)
+                    .hide(settingsFragment)
+                    .show(diarioFragment)
+                    .commit();
+            currentFragment = diarioFragment;
+
+            binding.navigationBar.setSelectedItemId(R.id.navigation_diary);
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+//        outState.putSerializable("map_frag", mapsFragment);
+//        outState.putSerializable("diario_frag", diarioFragment);
+//        outState.putSerializable("settings_frag", settingsFragment);
+//        int curFrag = -1;
+//        if (currentFragment != null) {
+//            if (currentFragment instanceof MapsFragment) curFrag = 0;
+//            else if (currentFragment instanceof DiarioFragment) curFrag = 1;
+//            else curFrag = 2;
+//        }
+//        outState.putInt("cur_frag", curFrag);
+
+        getSupportFragmentManager().putFragment(outState, MAP_FRAG, mapsFragment);
+        getSupportFragmentManager().putFragment(outState, DIARY_FRAG, diarioFragment);
+        getSupportFragmentManager().putFragment(outState, SETTINGS_FRAG, settingsFragment);
+//        if (currentFragment != null) {
+//            getSupportFragmentManager().putFragment(outState, CUR_FRAG, currentFragment);
+//        }
+        int curFrag = -1;
+        if (currentFragment != null) {
+            if (currentFragment instanceof MapsFragment) curFrag = 0;
+            else if (currentFragment instanceof DiarioFragment) curFrag = 1;
+            else curFrag = 2;
+        }
+        outState.putInt(CUR_FRAG, curFrag);
+
     }
 
     private boolean navigationListener(MenuItem menuItem) {
@@ -129,8 +241,7 @@ public class MainActivity extends AppCompatActivity {
             FragmentTransaction transaction = fragmentManager.beginTransaction();
             if (currentFragment != null)
                 transaction.hide(currentFragment);
-            transaction.replace(binding.fragmentContainer.getId(), fragment)
-                    .show(fragment)
+            transaction.show(fragment)
                     .commit();
             currentFragment = fragment;
         }

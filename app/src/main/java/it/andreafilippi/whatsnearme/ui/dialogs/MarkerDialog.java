@@ -7,7 +7,6 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -40,17 +39,19 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.DialogMarkerBinding;
 import it.andreafilippi.whatsnearme.entities.Place;
+import it.andreafilippi.whatsnearme.ui.activities.CameraActivity;
 import it.andreafilippi.whatsnearme.utils.DatabaseHelper;
 
 public class MarkerDialog extends DialogFragment {
+    public static final String ARG_PLACE = "place";
 
     private ActivityResultLauncher<String[]> bluetoothScanPermissionLauncher;
+
+    private ActivityResultLauncher<Intent> cameraLauncher;
 
     private DialogMarkerBinding binding;
     private Place place;
@@ -95,13 +96,27 @@ public class MarkerDialog extends DialogFragment {
         }
     };
 
-    public MarkerDialog(Place place) {
-        this.place = place;
+
+    public static MarkerDialog newInstance(Place place) {
+        Bundle args = new Bundle();
+        args.putSerializable(ARG_PLACE, place);
+        MarkerDialog md = new MarkerDialog();
+        md.setArguments(args);
+        return md;
     }
 
+    public MarkerDialog() {
+        // costruttore vuoto necessario
+    }
+
+    @Nullable
     @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+
+        if (getArguments() != null)
+            this.place = getArguments().getSerializable(ARG_PLACE, Place.class);
 
         bluetoothScanPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestMultiplePermissions(),
@@ -114,13 +129,19 @@ public class MarkerDialog extends DialogFragment {
                         Toast.makeText(requireContext(), "Permesso negato :(", Toast.LENGTH_SHORT).show();
                     }
                 });
-    }
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        super.onCreateView(inflater, container, savedInstanceState);
+        cameraLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == CameraActivity.RESULT_OK) {
+                        Intent data = result.getData();
+                        if (data != null) {
+                            salvaLuogoNelDiario(data.getStringExtra(CameraActivity.EXTRA_IMAGE_PATH));
+                        }
+                    } else {
+                        Toast.makeText(requireContext(), "Errore durante l'acquisizione", Toast.LENGTH_SHORT).show();
+                        salvaLuogoNelDiario(null);
+                    }
+                });
 
         binding = DialogMarkerBinding.inflate(inflater, container, false);
 
@@ -186,6 +207,11 @@ public class MarkerDialog extends DialogFragment {
     }
 
     @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
 
@@ -231,14 +257,27 @@ public class MarkerDialog extends DialogFragment {
             return;
         }
 
-        // TODO logica per scattare foto
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Luogo salvato nel diario!")
+                .setMessage("Vuoi aggiungere una foto al luogo?")
+                .setPositiveButton("Si", (dialog, which) -> {
+                    Intent intent = new Intent(requireActivity(), CameraActivity.class);
+                    cameraLauncher.launch(intent);
+                    dialog.dismiss();
+                })
+                .setNegativeButton("No", (dialog, which) -> {
+                    salvaLuogoNelDiario(null);
+                    dialog.dismiss();
+                }).show();
+    }
 
+    private void salvaLuogoNelDiario(String pathFoto) {
         new Thread(() -> {
-            if (databaseHelper.addLuogo(place, null) != -1) {
+            if (databaseHelper.addLuogo(place, pathFoto) != -1) {
                 isLuogoGiaVisitato = true;
                 requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Luogo salvato con successo nel diario!", Toast.LENGTH_SHORT).show());
             } else {
-                // TODO gestire errore oltre al dialog immagino eliminare la foto salvata
+                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Errore durante il salvataggio", Toast.LENGTH_SHORT).show());
             }
 
         }).start();

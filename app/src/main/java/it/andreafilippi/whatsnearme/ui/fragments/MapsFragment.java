@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -36,19 +37,26 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
+import java.io.Serializable;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import it.andreafilippi.whatsnearme.BuildConfig;
 import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.FragmentMapsBinding;
 import it.andreafilippi.whatsnearme.entities.Place;
+import it.andreafilippi.whatsnearme.params.MarkerData;
 import it.andreafilippi.whatsnearme.params.PlacesTaskParam;
 import it.andreafilippi.whatsnearme.ui.dialogs.MarkerDialog;
 import it.andreafilippi.whatsnearme.utils.FetchPlaces;
 
 public class MapsFragment extends Fragment implements OnMapReadyCallback {
-    private static final String CAMERA_POSITION = "camera_position";
+    private static final String ARG_MARKERS = "markers_list";
 
     private final LatLng italy = new LatLng(42.5, 12.5);
 
@@ -71,6 +79,17 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     private List<Marker> mapMarkers;
 
     private BitmapDescriptor userLocationIcon;
+    private ArrayList<MarkerData> savedMarkerData;
+
+
+    public static MapsFragment newInstance() {
+        MapsFragment mf = new MapsFragment();
+        return mf;
+    }
+
+    public MapsFragment() {
+
+    }
 
     @Nullable
     @Override
@@ -115,6 +134,10 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        if (savedInstanceState != null) {
+            this.savedMarkerData = savedInstanceState.getParcelableArrayList(ARG_MARKERS, MarkerData.class);
+        }
+
         SupportMapFragment mapFragment =
                 (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) {
@@ -132,6 +155,18 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
                     Toast.LENGTH_LONG).show();
         }
 
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (mapMarkers != null)
+            outState.putParcelableArrayList(ARG_MARKERS,
+                    new ArrayList<>(
+                            mapMarkers.stream()
+                                    .map(m -> new MarkerData(m.getPosition(), m.getTitle(), (Place) m.getTag()))
+                                    .collect(Collectors.toList())
+                    ));
     }
 
     @Override
@@ -175,6 +210,28 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         if (!isLocationEnabled) {
             myMap.animateCamera(CameraUpdateFactory.newLatLngZoom(italy, 3));
         }
+
+        if (this.mapMarkers != null) {
+            ArrayList<Marker> mapMarkersNew = new ArrayList<>(mapMarkers.size());
+            for (Marker marker : mapMarkers) {
+                Marker m = myMap.addMarker(new MarkerOptions().position(marker.getPosition()).title(marker.getTitle()));
+                if (m != null) {
+                    m.setTag(marker.getTag());
+                    mapMarkersNew.add(m);
+                }
+            }
+            this.mapMarkers = mapMarkersNew;
+        }
+        else if (savedMarkerData != null) {
+            this.mapMarkers = new ArrayList<>(savedMarkerData.size());
+            for (MarkerData marker : savedMarkerData) {
+                Marker m = myMap.addMarker(new MarkerOptions().position(marker.getPosition()).title(marker.getTitle()));
+                if (m != null) {
+                    m.setTag(marker.getPlace());
+                    this.mapMarkers.add(m);
+                }
+            }
+        }
     }
 
     private boolean onMarkerClick(Marker marker) {
@@ -183,7 +240,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             Place place = (Place) marker.getTag();
             Log.d("MARKER CLICK", marker.toString());
 
-            new MarkerDialog(place).show(requireActivity().getSupportFragmentManager(), "MarkerDialog");
+            MarkerDialog.newInstance(place).show(requireActivity().getSupportFragmentManager(), "markerDialog");
 
             return true;
         }
