@@ -3,13 +3,19 @@ package it.andreafilippi.whatsnearme.utils;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.Locale;
 
 import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.ItemDiarioBinding;
@@ -19,6 +25,7 @@ public class LuoghiAdapter extends RecyclerView.Adapter<LuoghiAdapter.LuogoViewH
     private Context context;
     private Cursor cursor;
     private OnItemClickListener listener;
+    private Drawable noImagePlaceholder;
 
     public interface OnItemClickListener {
         void onItemClick(int position);
@@ -30,6 +37,8 @@ public class LuoghiAdapter extends RecyclerView.Adapter<LuoghiAdapter.LuogoViewH
     public LuoghiAdapter(Context context, Cursor cursor) {
         this.context = context;
         this.cursor = cursor;
+
+        this.noImagePlaceholder = ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_no_image, context.getTheme());
     }
 
     @NonNull
@@ -47,8 +56,19 @@ public class LuoghiAdapter extends RecyclerView.Adapter<LuoghiAdapter.LuogoViewH
         }
 
         String nome = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_NOME));
+        Double lat = cursor.getDouble(cursor.getColumnIndex(DatabaseHelper.COLUMN_LATITUDINE));
+        Double lng = cursor.getDouble(cursor.getColumnIndex(DatabaseHelper.COLUMN_LONGITUDINE));
+        String imagePath = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_FOTO_PATH));
 
         holder.nomeLuogo.setText(nome);
+        holder.coordinate.setText(String.format(Locale.US, "%f, %f", lat, lng));
+
+        if (imagePath != null && !imagePath.isBlank()) {
+            Uri imageUri = Uri.parse("file://" + imagePath);
+            holder.luogoPhoto.setImageURI(imageUri);
+        } else {
+            holder.luogoPhoto.setImageDrawable(noImagePlaceholder);
+        }
     }
 
     @Override
@@ -57,11 +77,15 @@ public class LuoghiAdapter extends RecyclerView.Adapter<LuoghiAdapter.LuogoViewH
     }
 
     public static class LuogoViewHolder extends RecyclerView.ViewHolder {
-        public TextView nomeLuogo;
+        protected TextView nomeLuogo;
+        protected TextView coordinate;
+        protected ImageView luogoPhoto;
 
         public LuogoViewHolder(View itemView, final OnItemClickListener listener) {
             super(itemView);
             nomeLuogo = itemView.findViewById(R.id.nomeLuogo);
+            coordinate = itemView.findViewById(R.id.coordinate);
+            luogoPhoto = itemView.findViewById(R.id.luogo_photo);
 
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override

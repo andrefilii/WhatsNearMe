@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String SETTINGS_FRAG = "settings_frag";
     private static final String CUR_FRAG = "cur_frag";
 
-    private ActivityResultLauncher<String> locationPermissionLauncher;
+    private ActivityResultLauncher<String[]> locationPermissionLauncher;
     private ActivityResultLauncher<String> btConnectionPermissionLauncher;
 
     private ActivityMainBinding binding;
@@ -64,15 +64,11 @@ public class MainActivity extends AppCompatActivity {
 
         /* Creazione launcher per permessi a runtime */
         locationPermissionLauncher = registerForActivityResult(
-                new ActivityResultContracts.RequestPermission(),
-                isGranted -> {
-                    firstLoad(isGranted);
-//                    if (isGranted) {
-//                        loadFragment(mapsFragment);
-////                        firstLoad(true);
-//                    } else {
-//                        loadFragment(diarioFragment);
-//                    }
+                new ActivityResultContracts.RequestMultiplePermissions(),
+                result -> {
+                    Boolean fineLocationGranted = result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
+                    Boolean coarseLocationGranted = result.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false);
+                    firstLoad(Boolean.TRUE.equals(fineLocationGranted) || Boolean.TRUE.equals(coarseLocationGranted));
                 });
 
         btConnectionPermissionLauncher = registerForActivityResult(
@@ -157,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
                 firstLoad(true);
             } else {
                 // non ho i permessi, chiedo a runtime
-                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
+                locationPermissionLauncher.launch(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION});
             }
         }
     }
@@ -251,7 +247,11 @@ public class MainActivity extends AppCompatActivity {
         int fineLocationPermission =
                 ContextCompat.checkSelfPermission(this,
                         android.Manifest.permission.ACCESS_FINE_LOCATION);
-        return fineLocationPermission == PackageManager.PERMISSION_GRANTED;
+        int coarseLocationPermission =
+                ContextCompat.checkSelfPermission(this,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION);
+        return (fineLocationPermission == PackageManager.PERMISSION_GRANTED) ||
+                (coarseLocationPermission == PackageManager.PERMISSION_GRANTED);
     }
 
 

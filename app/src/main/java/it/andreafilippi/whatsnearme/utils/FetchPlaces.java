@@ -28,7 +28,8 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
     private static final Place[] testPlaces = {
             new Place().setId("MCDL0000000000").setName("Museo Città di Livorno").setLat(43.5551451).setLng(10.3071166),
             new Place().setId("MFVA0000000000").setName("Museo Fortezza Vecchia").setLat(43.5527328).setLng(10.3021199),
-            new Place().setId("MPGA0000000000").setName("Museo Piazza Grande").setLat(43.5506926).setLng(10.3089171).setTags(List.of("Ciao", "Git", "Git pull", "Git fetch remote"))
+            new Place().setId("MPGA0000000000").setName("Museo Piazza Grande").setLat(43.5506926).setLng(10.3089171).setTags(List.of("Ciao", "Git", "Git pull", "Git fetch remote")),
+            new Place().setId("MPGAEDL0000000000").setName("Museo Piazza Grande e d'intorni Larghi Distese").setLat(43.6506926).setLng(10.3089171).setTags(List.of("Ciao", "Git", "Git pull", "Git fetch remote"))
     };
 
     private static final String ENDPOINT = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?";

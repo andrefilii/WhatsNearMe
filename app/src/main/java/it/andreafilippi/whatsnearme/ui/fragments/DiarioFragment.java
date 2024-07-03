@@ -53,15 +53,25 @@ public class DiarioFragment extends Fragment {
         return binding.getRoot();
     }
 
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (!hidden) {
+            loadLuoghi();
+        }
+    }
+
     private void loadLuoghi() {
-        Cursor cursor = databaseHelper.getAllLuoghi();
+        new Thread(() -> {
+            Cursor cursor = databaseHelper.getAllLuoghi();
 
-        requireActivity().runOnUiThread(() -> {
             adapter = new LuoghiAdapter(requireContext(), cursor);
-            binding.recyclerView.setAdapter(adapter);
-
             adapter.setOnItemClickListener(this::showDetailsDialog);
-        });
+            requireActivity().runOnUiThread(() -> {
+                binding.recyclerView.setAdapter(adapter);
+
+            });
+        }).start();
     }
 
     @Override

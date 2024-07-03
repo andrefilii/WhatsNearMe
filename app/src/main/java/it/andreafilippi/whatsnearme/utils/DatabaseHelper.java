@@ -69,6 +69,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return exists;
     }
 
+    public Cursor getLuogoById(String id) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_NAME + " WHERE " + COLUMN_ID + " = ? LIMIT 1", new String[]{id});
+    }
+
     public boolean removeLuogo(String id) {
         SQLiteDatabase db = this.getReadableDatabase();
         int rowsAffected = db.delete(TABLE_NAME, COLUMN_ID + " = ?", new String[]{id});

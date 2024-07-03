@@ -347,7 +347,11 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         int fineLocationPermission =
                 ContextCompat.checkSelfPermission(requireContext(),
                         android.Manifest.permission.ACCESS_FINE_LOCATION);
-        return fineLocationPermission == PackageManager.PERMISSION_GRANTED;
+        int coarseLocationPermission =
+                ContextCompat.checkSelfPermission(requireContext(),
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION);
+        return (fineLocationPermission == PackageManager.PERMISSION_GRANTED) ||
+                (coarseLocationPermission == PackageManager.PERMISSION_GRANTED);
     }
 
     private Integer getSearchRadius() {

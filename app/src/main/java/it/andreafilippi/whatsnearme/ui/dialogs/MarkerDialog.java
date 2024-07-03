@@ -157,7 +157,16 @@ public class MarkerDialog extends DialogFragment {
 
         databaseHelper = new DatabaseHelper(requireContext());
         isLuogoGiaVisitato = null;
-        new Thread(() -> isLuogoGiaVisitato = databaseHelper.doesLuogoExist(place.getId())).start();
+        new Thread(() -> {
+            isLuogoGiaVisitato = databaseHelper.doesLuogoExist(place.getId());
+            requireActivity().runOnUiThread(() -> {
+                if (isLuogoGiaVisitato) {
+                    binding.segnaVisitatoBtn.setBackgroundResource(R.drawable.rounded_background_red);
+                } else {
+                    binding.segnaVisitatoBtn.setBackgroundResource(R.drawable.rounded_background_grey);
+                }
+            });
+        }).start();
 
         if (place.getTags() != null) {
             //creazione chips
@@ -168,7 +177,7 @@ public class MarkerDialog extends DialogFragment {
                 Chip chip = new Chip(requireContext());
                 chip.setLayoutParams(layoutParams);
                 chip.setClickable(false);
-                chip.setText(tag);
+                chip.setText(tag.replace("_", " "));
                 chip.setChipDrawable(ChipDrawable.createFromAttributes(requireContext(), null, 0, com.google.android.material.R.style.Widget_MaterialComponents_Chip_Filter));
 
                 chipGroup.addView(chip);
@@ -240,9 +249,11 @@ public class MarkerDialog extends DialogFragment {
                         new Thread(() -> {
                             if (databaseHelper.removeLuogo(place.getId())) {
                                 // è andato a buon fine
-                                // TODO ricambiare icona del pulsante
                                 isLuogoGiaVisitato = false;
-                                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Luogo rimosso dal diario", Toast.LENGTH_SHORT).show());
+                                requireActivity().runOnUiThread(() -> {
+                                    binding.segnaVisitatoBtn.setBackgroundResource(R.drawable.rounded_background_grey);
+                                    Toast.makeText(requireContext(), "Luogo rimosso dal diario", Toast.LENGTH_SHORT).show();
+                                });
                             } else {
                                 requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Errore durante la rimozione", Toast.LENGTH_SHORT).show());
                             }
@@ -258,8 +269,7 @@ public class MarkerDialog extends DialogFragment {
         }
 
         new AlertDialog.Builder(requireContext())
-                .setTitle("Luogo salvato nel diario!")
-                .setMessage("Vuoi aggiungere una foto al luogo?")
+                .setTitle("Vuoi aggiungere una foto al luogo?")
                 .setPositiveButton("Si", (dialog, which) -> {
                     Intent intent = new Intent(requireActivity(), CameraActivity.class);
                     cameraLauncher.launch(intent);
@@ -272,10 +282,14 @@ public class MarkerDialog extends DialogFragment {
     }
 
     private void salvaLuogoNelDiario(String pathFoto) {
+        if (pathFoto != null) Log.d("MD-SAVE-PHOTO", pathFoto);
         new Thread(() -> {
             if (databaseHelper.addLuogo(place, pathFoto) != -1) {
                 isLuogoGiaVisitato = true;
-                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Luogo salvato con successo nel diario!", Toast.LENGTH_SHORT).show());
+                requireActivity().runOnUiThread(() -> {
+                    binding.segnaVisitatoBtn.setBackgroundResource(R.drawable.rounded_background_red);
+                    Toast.makeText(requireContext(), "Luogo salvato con successo nel diario!", Toast.LENGTH_SHORT).show();
+                });
             } else {
                 requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Errore durante il salvataggio", Toast.LENGTH_SHORT).show());
             }
