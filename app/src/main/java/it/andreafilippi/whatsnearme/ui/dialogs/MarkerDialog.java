@@ -34,8 +34,10 @@ import androidx.fragment.app.DialogFragment;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipDrawable;
 import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -45,6 +47,7 @@ import it.andreafilippi.whatsnearme.databinding.DialogMarkerBinding;
 import it.andreafilippi.whatsnearme.entities.Place;
 import it.andreafilippi.whatsnearme.ui.activities.CameraActivity;
 import it.andreafilippi.whatsnearme.utils.DatabaseHelper;
+import it.andreafilippi.whatsnearme.utils.Utils;
 
 public class MarkerDialog extends DialogFragment {
     public static final String ARG_PLACE = "place";
@@ -126,7 +129,8 @@ public class MarkerDialog extends DialogFragment {
                     if (Boolean.TRUE.equals(btScanGranted) && Boolean.TRUE.equals(btConnectGranted)) {
                         startBtDiscovery();
                     } else {
-                        Toast.makeText(requireContext(), "Permesso negato :(", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(requireContext(), "Permesso negato :(", Toast.LENGTH_SHORT).show();
+                        Utils.makeToastShort(requireContext(), "Permessi non concessi");
                     }
                 });
 
@@ -139,7 +143,8 @@ public class MarkerDialog extends DialogFragment {
                         }
                     } else {
                         Toast.makeText(requireContext(), "Errore durante l'acquisizione", Toast.LENGTH_SHORT).show();
-                        salvaLuogoNelDiario(null);
+                        Utils.makeToastShort(requireContext(), "Errore durante lo scatto");
+//                        salvaLuogoNelDiario(null);
                     }
                 });
 
@@ -238,7 +243,8 @@ public class MarkerDialog extends DialogFragment {
 
     private void onSegnaVisitatoBtnClick(View view) {
         if (isLuogoGiaVisitato == null) {
-            Toast.makeText(requireContext(), "Attendere il caricamento dei dati", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(requireContext(), "Attendere il caricamento dei dati", Toast.LENGTH_SHORT).show();
+            Utils.makeToastShort(requireContext(), "Attendere il caricamento dei dati");
             return;
         } else if (isLuogoGiaVisitato) {
             new AlertDialog.Builder(requireContext())
@@ -252,10 +258,11 @@ public class MarkerDialog extends DialogFragment {
                                 isLuogoGiaVisitato = false;
                                 requireActivity().runOnUiThread(() -> {
                                     binding.segnaVisitatoBtn.setBackgroundResource(R.drawable.rounded_background_grey);
-                                    Toast.makeText(requireContext(), "Luogo rimosso dal diario", Toast.LENGTH_SHORT).show();
+//                                    Toast.makeText(requireContext(), "Luogo rimosso dal diario", Toast.LENGTH_SHORT).show();
+                                    Utils.makeToastShort(requireContext(), "Luogo rimosso dal diario");
                                 });
                             } else {
-                                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Errore durante la rimozione", Toast.LENGTH_SHORT).show());
+                                requireActivity().runOnUiThread(() -> Utils.makeToastShort(requireContext(), "Errore durante la rimozione"));
                             }
                         }).start();
                         dialog.dismiss();
@@ -288,10 +295,11 @@ public class MarkerDialog extends DialogFragment {
                 isLuogoGiaVisitato = true;
                 requireActivity().runOnUiThread(() -> {
                     binding.segnaVisitatoBtn.setBackgroundResource(R.drawable.rounded_background_red);
-                    Toast.makeText(requireContext(), "Luogo salvato con successo nel diario!", Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(requireContext(), "Luogo salvato con successo nel diario!", Toast.LENGTH_SHORT).show();
+                    Utils.makeToastShort(requireContext(), "Luogo salvato nel diario!");
                 });
             } else {
-                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Errore durante il salvataggio", Toast.LENGTH_SHORT).show());
+                requireActivity().runOnUiThread(() -> Utils.makeToastShort(requireContext(), "Errore durante il salvataggio"));
             }
 
         }).start();
@@ -332,7 +340,8 @@ public class MarkerDialog extends DialogFragment {
 
     private void onShareMenuBluetoothClick() {
         if (!bluetoothAdapter.isEnabled()) {
-            Toast.makeText(requireContext(), "Bluetooth non attivo!", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(requireContext(), "Bluetooth non attivo!", Toast.LENGTH_SHORT).show();
+            Utils.makeToastShort(requireContext(), "Bluetooth non attivo!");
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivity(enableBtIntent);
             return;
@@ -340,7 +349,7 @@ public class MarkerDialog extends DialogFragment {
         // è abilitato, inizio a cercare dispositivi vicini
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED ||
                 ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(requireContext(), "Per favore accettare e riprovare", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(requireContext(), "Per favore accettare e riprovare", Toast.LENGTH_SHORT).show();
             bluetoothScanPermissionLauncher.launch(new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT});
         } else {
             startBtDiscovery();
@@ -374,9 +383,11 @@ public class MarkerDialog extends DialogFragment {
         } else {
             // provo a fare il pairing, se va a buon fine verrà chiamato il receiver definito sopra
             if (device.createBond())
-                Toast.makeText(requireContext(), "Inizio pairing", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(requireContext(), "Inizio pairing", Toast.LENGTH_SHORT).show();
+                Utils.makeToastShort(requireContext(), "Inizio pairing");
             else
-                Toast.makeText(requireContext(), "Errore pairing", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(requireContext(), "Errore pairing", Toast.LENGTH_SHORT).show();
+                Utils.makeToastShort(requireContext(), "Errore pairing");
         }
     }
 
@@ -402,18 +413,31 @@ public class MarkerDialog extends DialogFragment {
     @SuppressWarnings("MissingPermission")
     private void connectAndSendDataBluetooth(BluetoothDevice device) {
         Log.d("BT DISCOVER", "Device selezionato: " + device);
-
-        try (BluetoothSocket bs = device.createInsecureRfcommSocketToServiceRecord(UUID.fromString(getString(R.string.btConnectionUID)))) {
+        try {
+            BluetoothSocket bs = device.createInsecureRfcommSocketToServiceRecord(UUID.fromString(getString(R.string.btConnectionUID)));
             // FINALMENTE, invio i dati
             bs.connect();
             OutputStream os = bs.getOutputStream();
             os.write(getPlaceLocationUri().getBytes(StandardCharsets.UTF_8));
             os.flush();
 
+            requireActivity().runOnUiThread(() -> {
+                Utils.makeToastShort(requireContext(), "Trasferimento andato a buon fine");
+            });
+
+            bs.getInputStream().read();
+            bs.close();
+//            try {
+//                Thread.sleep(10000);
+//            } catch (InterruptedException e) {
+//
+//            }
+
+
         } catch (IOException e) {
             Log.e("BT CONNECT", e.toString());
             requireActivity().runOnUiThread(() -> {
-                Toast.makeText(requireContext(), "Trasferimento via Bluetooth fallito", Toast.LENGTH_SHORT).show();
+                Utils.makeToastShort(requireContext(), "Trasferimento via Bluetooth fallito");
             });
         }
     }

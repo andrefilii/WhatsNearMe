@@ -54,6 +54,7 @@ import it.andreafilippi.whatsnearme.params.MarkerData;
 import it.andreafilippi.whatsnearme.params.PlacesTaskParam;
 import it.andreafilippi.whatsnearme.ui.dialogs.MarkerDialog;
 import it.andreafilippi.whatsnearme.utils.FetchPlaces;
+import it.andreafilippi.whatsnearme.utils.Utils;
 
 public class MapsFragment extends Fragment implements OnMapReadyCallback {
     private static final String ARG_MARKERS = "markers_list";
@@ -150,9 +151,10 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             binding.btnMuseums.setEnabled(false);
             binding.btnATM.setEnabled(false);
 
-            Toast.makeText(requireContext(),
-                    "Abilita la posizione per utilizzare la funzione di ricerca",
-                    Toast.LENGTH_LONG).show();
+//            Toast.makeText(requireContext(),
+//                    "Abilita la posizione per utilizzare la funzione di ricerca",
+//                    Toast.LENGTH_LONG).show();
+            Utils.makeToastShort(requireContext(), "Abilita la posizione per utilizzare la funzione di ricerca");
         }
 
     }
@@ -296,9 +298,10 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
     private void onBtnATMClick(View view) {
         if (currentLocationMarker == null) {
-            Toast.makeText(requireContext(),
-                    "Per favore attendere il caricamento della posizione",
-                    Toast.LENGTH_SHORT).show();
+//            Toast.makeText(requireContext(),
+//                    "Per favore attendere il caricamento della posizione",
+//                    Toast.LENGTH_SHORT).show();
+            Utils.makeToastShort(requireContext(), "Per favore attendi il caricamento della posizione");
         } else {
             fetchPlaces(Place.Category.ATM);
         }
@@ -306,9 +309,10 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
     private void onBtnMuseumsClick(View view) {
         if (currentLocationMarker == null) {
-            Toast.makeText(requireContext(),
-                    "Per favore attendere il caricamento della posizione",
-                    Toast.LENGTH_SHORT).show();
+//            Toast.makeText(requireContext(),
+//                    "Per favore attendere il caricamento della posizione",
+//                    Toast.LENGTH_SHORT).show();
+            Utils.makeToastShort(requireContext(), "Per favore attendi il caricamento della posizione");
         } else {
             fetchPlaces(Place.Category.MUSEUM);
         }
@@ -316,9 +320,10 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
     private void onBtnRestaurantsClick(View view) {
         if (currentLocationMarker == null) {
-            Toast.makeText(requireContext(),
-                    "Per favore attendere il caricamento della posizione",
-                    Toast.LENGTH_SHORT).show();
+//            Toast.makeText(requireContext(),
+//                    "Per favore attendere il caricamento della posizione",
+//                    Toast.LENGTH_SHORT).show();
+            Utils.makeToastShort(requireContext(), "Per favore attendi il caricamento della posizione");
         } else {
             fetchPlaces(Place.Category.RESTAURANT);
         }

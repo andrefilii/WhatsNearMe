@@ -1,12 +1,12 @@
 package it.andreafilippi.whatsnearme.ui;
 
 import android.Manifest;
-import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -17,6 +17,7 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -26,7 +27,9 @@ import androidx.fragment.app.FragmentTransaction;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.UUID;
 
 import it.andreafilippi.whatsnearme.R;
@@ -34,6 +37,7 @@ import it.andreafilippi.whatsnearme.databinding.ActivityMainBinding;
 import it.andreafilippi.whatsnearme.ui.fragments.DiarioFragment;
 import it.andreafilippi.whatsnearme.ui.fragments.MapsFragment;
 import it.andreafilippi.whatsnearme.ui.fragments.SettingsFragment;
+import it.andreafilippi.whatsnearme.utils.Utils;
 
 public class MainActivity extends AppCompatActivity {
     private static final String MAP_FRAG = "map_frag";
@@ -42,7 +46,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String CUR_FRAG = "cur_frag";
 
     private ActivityResultLauncher<String[]> locationPermissionLauncher;
-    private ActivityResultLauncher<String> btConnectionPermissionLauncher;
+    private ActivityResultLauncher<String[]> btConnectionPermissionLauncher;
+    private ActivityResultLauncher<Intent> discoverableBtLauncher;
 
     private ActivityMainBinding binding;
 
@@ -72,12 +77,24 @@ public class MainActivity extends AppCompatActivity {
                 });
 
         btConnectionPermissionLauncher = registerForActivityResult(
-                new ActivityResultContracts.RequestPermission(),
-                isGranted -> {
-                    if (isGranted) {
-                        openBtConnectionDialog();
+                new ActivityResultContracts.RequestMultiplePermissions(),
+                result -> {
+                    Boolean bluetoothConnection = result.getOrDefault(Manifest.permission.BLUETOOTH_CONNECT, false);
+                    Boolean bluetoothDiscoverable = result.getOrDefault(Manifest.permission.BLUETOOTH_SCAN, false);
+                    if (Boolean.TRUE.equals(bluetoothDiscoverable) && Boolean.TRUE.equals(bluetoothConnection)) {
+                        ensureBtDiscoverable();
                     } else {
-                        Toast.makeText(this, "Necessari i permessi per ricevere i dati!", Toast.LENGTH_LONG).show();
+                        Utils.makeToastLong(this, "Necessari i permessi per ricevere i dati!");
+                    }
+                });
+
+        discoverableBtLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_CANCELED) {
+                        // L'utente ha rifiutato la visibilità
+                        Utils.makeToastShort(this, "Visibilità Bluetooth rifiutata");
+                    } else {
+                        openBtConnectionDialog();
                     }
                 });
 
@@ -97,37 +114,9 @@ public class MainActivity extends AppCompatActivity {
         fragmentManager = getSupportFragmentManager();
 
         if (savedInstanceState != null) {
-//            mapsFragment = savedInstanceState.getSerializable("map_frag", MapsFragment.class);
-//            diarioFragment = savedInstanceState.getSerializable("diario_frag", DiarioFragment.class);
-//            settingsFragment = savedInstanceState.getSerializable("settings_frag", SettingsFragment.class);
-//
-//            switch (savedInstanceState.getInt("cur_frag")) {
-//                case 0:
-//                    currentFragment = mapsFragment;
-//                    binding.navigationBar.setSelectedItemId(R.id.navigation_map);
-//                    break;
-//                case 1:
-//                    currentFragment = diarioFragment;
-//                    binding.navigationBar.setSelectedItemId(R.id.navigation_diary);
-//                    break;
-//                case 2:
-//                    currentFragment = settingsFragment;
-//                    binding.navigationBar.setSelectedItemId(R.id.navigation_settings);
-//                    break;
-//            }
             mapsFragment = (MapsFragment) getSupportFragmentManager().getFragment(savedInstanceState, MAP_FRAG);
             diarioFragment = (DiarioFragment) getSupportFragmentManager().getFragment(savedInstanceState, DIARY_FRAG);
             settingsFragment = (SettingsFragment) getSupportFragmentManager().getFragment(savedInstanceState, SETTINGS_FRAG);
-
-//            currentFragment = getSupportFragmentManager().getFragment(savedInstanceState, CUR_FRAG);
-//            if (currentFragment != null) {
-//                if (currentFragment instanceof MapsFragment)
-//                    binding.navigationBar.setSelectedItemId(R.id.navigation_map);
-//                else if (currentFragment instanceof DiarioFragment)
-//                    binding.navigationBar.setSelectedItemId(R.id.navigation_diary);
-//                else
-//                    binding.navigationBar.setSelectedItemId(R.id.navigation_settings);
-//            }
             switch (savedInstanceState.getInt(CUR_FRAG)) {
                 case 0:
                     currentFragment = mapsFragment;
@@ -149,7 +138,6 @@ public class MainActivity extends AppCompatActivity {
 
             // verifico permessi per la posizione
             if (checkLocationPermission()) {
-//                loadFragment(mapsFragment);
                 firstLoad(true);
             } else {
                 // non ho i permessi, chiedo a runtime
@@ -188,23 +176,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-//        outState.putSerializable("map_frag", mapsFragment);
-//        outState.putSerializable("diario_frag", diarioFragment);
-//        outState.putSerializable("settings_frag", settingsFragment);
-//        int curFrag = -1;
-//        if (currentFragment != null) {
-//            if (currentFragment instanceof MapsFragment) curFrag = 0;
-//            else if (currentFragment instanceof DiarioFragment) curFrag = 1;
-//            else curFrag = 2;
-//        }
-//        outState.putInt("cur_frag", curFrag);
-
         getSupportFragmentManager().putFragment(outState, MAP_FRAG, mapsFragment);
         getSupportFragmentManager().putFragment(outState, DIARY_FRAG, diarioFragment);
         getSupportFragmentManager().putFragment(outState, SETTINGS_FRAG, settingsFragment);
-//        if (currentFragment != null) {
-//            getSupportFragmentManager().putFragment(outState, CUR_FRAG, currentFragment);
-//        }
+
         int curFrag = -1;
         if (currentFragment != null) {
             if (currentFragment instanceof MapsFragment) curFrag = 0;
@@ -212,7 +187,6 @@ public class MainActivity extends AppCompatActivity {
             else curFrag = 2;
         }
         outState.putInt(CUR_FRAG, curFrag);
-
     }
 
     private boolean navigationListener(MenuItem menuItem) {
@@ -258,49 +232,65 @@ public class MainActivity extends AppCompatActivity {
     /* GESTIONE RICEVITORE BT */
 
     private void onBtBtnClick(View view) {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            btConnectionPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            btConnectionPermissionLauncher.launch(new String[]{Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN});
+        } else {
+            ensureBtDiscoverable();
+        }
+    }
+
+    @SuppressWarnings("MissingPermission")
+    private void ensureBtDiscoverable() {
+        if (btAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+            Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+            intent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+            discoverableBtLauncher.launch(intent);
         } else {
             openBtConnectionDialog();
         }
     }
 
     private void openBtConnectionDialog() {
-        // TODO creare un dialog o qualcosa del genere per eventualmente interrompere la connessione
-        //  e mostrare un timer massimo di attesa aggiornato dalla funzione di connessione
-        //  la funzione scrive anche il risultato su questo dialog
+        // TODO creare un dialog
+//        new AlertDialog.Builder(this)
+//                .setView()
+//                .setCancelable(false)
         new Thread(this::connectAndReceiveData).start();
     }
 
     @SuppressWarnings("MissingPermission")
     private void connectAndReceiveData() {
-        // TODO forse aprire un dialog che indica che si è in ascolto e il timer di massima attesa che scende
-        try (BluetoothServerSocket bss =
-                     btAdapter.listenUsingRfcommWithServiceRecord(
-                             getString(R.string.btConnectionName),
-                             UUID.fromString(getString(R.string.btConnectionUID)))) {
-            try (BluetoothSocket bs = bss.accept(60000)) {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(bs.getInputStream()))) {
-                    StringBuilder builder = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        builder.append(line).append("\n");
-                    }
-                    runOnUiThread(() -> {
-                        // TODO far diventare una notifica o qualcosa del genere
-                        Toast.makeText(this, "Messaggio ricevuto: " + builder, Toast.LENGTH_LONG).show();
-                        Log.d("BT RECEIVED", builder.toString());
-                    });
-                } catch (IOException e) {
-                    Log.e("BT CONNECTION", e.toString());
-                }
+        try {
+            BluetoothServerSocket bss =
+                    btAdapter.listenUsingRfcommWithServiceRecord(
+                            getString(R.string.btConnectionName),
+                            UUID.fromString(getString(R.string.btConnectionUID)));
+
+            BluetoothSocket bs = bss.accept(30000);
+            bss.close();
+            try {
+                InputStream is = bs.getInputStream();
+                byte[] buffer = new byte[1024];
+                int bytes = is.read(buffer);
+                String readMessage = new String(buffer, 0, bytes);
+                Log.d("BT CONNECTION", readMessage);
+
+                bs.getOutputStream().write(0);
+
+                bs.close();
+
+                runOnUiThread(() -> {
+                    // TODO far diventare una notifica
+                    Toast.makeText(this, "Messaggio ricevuto: " + readMessage, Toast.LENGTH_LONG).show();
+                });
             } catch (IOException e) {
                 Log.e("BT CONNECTION", e.toString());
             }
         } catch (IOException e) {
             Log.e("BT CONNECTION", e.toString());
             runOnUiThread(() -> {
-                Toast.makeText(this, "Errore in fase di connessione", Toast.LENGTH_SHORT).show();
+                Utils.makeToastShort(this, "Errore in fase di connessione");
             });
         }
     }

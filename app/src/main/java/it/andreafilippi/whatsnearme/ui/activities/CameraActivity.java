@@ -30,6 +30,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 import it.andreafilippi.whatsnearme.databinding.ActivityCameraBinding;
+import it.andreafilippi.whatsnearme.utils.Utils;
 
 public class CameraActivity extends AppCompatActivity {
     public static final int RESULT_OK = AppCompatActivity.RESULT_OK;
@@ -56,7 +57,8 @@ public class CameraActivity extends AppCompatActivity {
                         // Permessi concessi, avvia la fotocamera
                         startCamera();
                     } else {
-                        Toast.makeText(this, "Permesso non dato :(", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(this, "Permesso non dato :(", Toast.LENGTH_SHORT).show();
+                        Utils.makeToastShort(this, "Permessi non concessi");
                         setResult(RESULT_CANCELED);
                         finish();
                     }
