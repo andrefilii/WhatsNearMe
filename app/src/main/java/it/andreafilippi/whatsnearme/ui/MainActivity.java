@@ -12,6 +12,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -34,9 +36,11 @@ import java.util.UUID;
 
 import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.ActivityMainBinding;
+import it.andreafilippi.whatsnearme.databinding.DialogBtReceiverBinding;
 import it.andreafilippi.whatsnearme.ui.fragments.DiarioFragment;
 import it.andreafilippi.whatsnearme.ui.fragments.MapsFragment;
 import it.andreafilippi.whatsnearme.ui.fragments.SettingsFragment;
+import it.andreafilippi.whatsnearme.utils.BtReceiverTask;
 import it.andreafilippi.whatsnearme.utils.Utils;
 
 public class MainActivity extends AppCompatActivity {
@@ -60,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
     private Fragment currentFragment;
 
     private BluetoothAdapter btAdapter;
+    private BtReceiverTask btReceiverTask;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -252,49 +257,74 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openBtConnectionDialog() {
-        // TODO creare un dialog
-//        new AlertDialog.Builder(this)
-//                .setView()
-//                .setCancelable(false)
-        new Thread(this::connectAndReceiveData).start();
-    }
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Attendi...");
 
-    @SuppressWarnings("MissingPermission")
-    private void connectAndReceiveData() {
-        try {
-            BluetoothServerSocket bss =
-                    btAdapter.listenUsingRfcommWithServiceRecord(
-                            getString(R.string.btConnectionName),
-                            UUID.fromString(getString(R.string.btConnectionUID)));
+        DialogBtReceiverBinding binding = DialogBtReceiverBinding.inflate(getLayoutInflater(), null, false);
+        builder.setView(binding.getRoot());
 
-            BluetoothSocket bs = bss.accept(30000);
-            bss.close();
-            try {
-                InputStream is = bs.getInputStream();
-                byte[] buffer = new byte[1024];
-                int bytes = is.read(buffer);
-                String readMessage = new String(buffer, 0, bytes);
-                Log.d("BT CONNECTION", readMessage);
+        ProgressBar progressBar = binding.progressBar;
+        TextView msgReceived = binding.msgReceived;
 
-                bs.getOutputStream().write(0);
-
-                bs.close();
-
-                runOnUiThread(() -> {
-                    // TODO far diventare una notifica
-                    Toast.makeText(this, "Messaggio ricevuto: " + readMessage, Toast.LENGTH_LONG).show();
-                });
-            } catch (IOException e) {
-                Log.e("BT CONNECTION", e.toString());
-                runOnUiThread(() -> {
-                    Utils.makeToastShort(this, "Errore durante la ricezione del messaggio");
-                });
-            }
-        } catch (IOException e) {
-            Log.e("BT CONNECTION", e.toString());
-            runOnUiThread(() -> {
-                Utils.makeToastShort(this, "Errore in fase di connessione");
+        builder.setNegativeButton("Annulla", (d, which) -> {
+                if (btReceiverTask != null) {
+                    btReceiverTask.cancel(true);
+                    btReceiverTask = null;
+                }
+                d.dismiss();
             });
-        }
+
+        AlertDialog dialog = builder.create();
+        dialog.setCancelable(true);
+        dialog.setOnCancelListener((d) -> {
+                if (btReceiverTask != null) {
+                    btReceiverTask.cancel(true);
+                    btReceiverTask = null;
+                }
+                d.dismiss();
+            });
+
+        dialog.show();
+
+        btReceiverTask = new BtReceiverTask(this, btAdapter, getString(R.string.btConnectionName), UUID.fromString(getString(R.string.btConnectionUID)), dialog, progressBar, msgReceived);
+        btReceiverTask.execute();
     }
+
+//    @SuppressWarnings("MissingPermission")
+//    private void connectAndReceiveData() {
+//        try {
+//            BluetoothServerSocket bss =
+//                    btAdapter.listenUsingRfcommWithServiceRecord(
+//                            getString(R.string.btConnectionName),
+//                            UUID.fromString(getString(R.string.btConnectionUID)));
+//
+//            BluetoothSocket bs = bss.accept(30000);
+//            bss.close();
+//            try {
+//                InputStream is = bs.getInputStream();
+//                byte[] buffer = new byte[1024];
+//                int bytes = is.read(buffer);
+//                String readMessage = new String(buffer, 0, bytes);
+//                Log.d("BT CONNECTION", readMessage);
+//
+//                bs.getOutputStream().write(0);
+//
+//                bs.close();
+//
+//                runOnUiThread(() -> {
+//                    Utils.makeToastLong(this, "Messaggio ricevuto: " + readMessage);
+//                });
+//            } catch (IOException e) {
+//                Log.e("BT CONNECTION", e.toString());
+//                runOnUiThread(() -> {
+//                    Utils.makeToastShort(this, "Errore durante la ricezione del messaggio");
+//                });
+//            }
+//        } catch (IOException e) {
+//            Log.e("BT CONNECTION", e.toString());
+//            runOnUiThread(() -> {
+//                Utils.makeToastShort(this, "Errore in fase di connessione");
+//            });
+//        }
+//    }
 }

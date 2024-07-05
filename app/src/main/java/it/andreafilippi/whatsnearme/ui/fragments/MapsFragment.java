@@ -58,6 +58,7 @@ import it.andreafilippi.whatsnearme.utils.Utils;
 
 public class MapsFragment extends Fragment implements OnMapReadyCallback {
     private static final String ARG_MARKERS = "markers_list";
+    private static final String ARG_CATEGORY = "category";
 
     private final LatLng italy = new LatLng(42.5, 12.5);
 
@@ -77,6 +78,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
     private Circle searchRadiusCircle;
 
+    private Place.Category curCategory;
     private List<Marker> mapMarkers;
 
     private BitmapDescriptor userLocationIcon;
@@ -137,6 +139,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
         if (savedInstanceState != null) {
             this.savedMarkerData = savedInstanceState.getParcelableArrayList(ARG_MARKERS, MarkerData.class);
+            this.curCategory = Place.Category.getCategoryByString(savedInstanceState.getString(ARG_CATEGORY));
         }
 
         SupportMapFragment mapFragment =
@@ -159,13 +162,15 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (mapMarkers != null)
+        if (mapMarkers != null) {
             outState.putParcelableArrayList(ARG_MARKERS,
                     new ArrayList<>(
                             mapMarkers.stream()
                                     .map(m -> new MarkerData(m.getPosition(), m.getTitle(), (Place) m.getTag()))
                                     .collect(Collectors.toList())
                     ));
+            outState.putString(ARG_CATEGORY, curCategory.getDescription());
+        }
     }
 
     @Override
@@ -226,9 +231,10 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         }
 
         if (this.mapMarkers != null) {
+            BitmapDescriptor icon = Utils.creaIconaMarker(requireContext(), this.curCategory);
             ArrayList<Marker> mapMarkersNew = new ArrayList<>(mapMarkers.size());
             for (Marker marker : mapMarkers) {
-                Marker m = myMap.addMarker(new MarkerOptions().position(marker.getPosition()).title(marker.getTitle()));
+                Marker m = myMap.addMarker(new MarkerOptions().position(marker.getPosition()).title(marker.getTitle()).icon(icon));
                 if (m != null) {
                     m.setTag(marker.getTag());
                     mapMarkersNew.add(m);
@@ -237,9 +243,10 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             this.mapMarkers = mapMarkersNew;
         }
         else if (savedMarkerData != null) {
+            BitmapDescriptor icon = Utils.creaIconaMarker(requireContext(), this.curCategory);
             this.mapMarkers = new ArrayList<>(savedMarkerData.size());
             for (MarkerData marker : savedMarkerData) {
-                Marker m = myMap.addMarker(new MarkerOptions().position(marker.getPosition()).title(marker.getTitle()));
+                Marker m = myMap.addMarker(new MarkerOptions().position(marker.getPosition()).title(marker.getTitle()).icon(icon));
                 if (m != null) {
                     m.setTag(marker.getPlace());
                     this.mapMarkers.add(m);
@@ -314,9 +321,6 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
     private void onBtnATMClick(View view) {
         if (currentLocationMarker == null) {
-//            Toast.makeText(requireContext(),
-//                    "Per favore attendere il caricamento della posizione",
-//                    Toast.LENGTH_SHORT).show();
             Utils.makeToastShort(requireContext(), "Per favore attendi il caricamento della posizione");
         } else {
             fetchPlaces(Place.Category.ATM);
@@ -325,9 +329,6 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
     private void onBtnMuseumsClick(View view) {
         if (currentLocationMarker == null) {
-//            Toast.makeText(requireContext(),
-//                    "Per favore attendere il caricamento della posizione",
-//                    Toast.LENGTH_SHORT).show();
             Utils.makeToastShort(requireContext(), "Per favore attendi il caricamento della posizione");
         } else {
             fetchPlaces(Place.Category.MUSEUM);
@@ -336,9 +337,6 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
     private void onBtnRestaurantsClick(View view) {
         if (currentLocationMarker == null) {
-//            Toast.makeText(requireContext(),
-//                    "Per favore attendere il caricamento della posizione",
-//                    Toast.LENGTH_SHORT).show();
             Utils.makeToastShort(requireContext(), "Per favore attendi il caricamento della posizione");
         } else {
             fetchPlaces(Place.Category.RESTAURANT);
@@ -355,12 +353,13 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
                 .setCategory(category)
                 .setApiKey(BuildConfig.MAPS_API_KEY);
 
-        new FetchPlaces(requireContext(), params, mapMarkers, this::onFetchPlacesCompleted).execute();
+        new FetchPlaces(requireContext(), params, mapMarkers, (markers) -> onFetchPlacesCompleted(markers, category)).execute();
     }
 
-    private void onFetchPlacesCompleted(List<Marker> markers) {
+    private void onFetchPlacesCompleted(List<Marker> markers, Place.Category category) {
         // mi salvo i nuovi marker: questo serve per poi passarli di nuovo al Task in caso di una
         //  nuova ricerca
+        this.curCategory = category;
         this.mapMarkers = markers;
     }
 

@@ -76,6 +76,13 @@ public class Place implements Serializable {
             this.description = description;
         }
 
+        public static Category getCategoryByString(String description) {
+            for (Category c : Category.values()) {
+                if (c.description.equals(description)) return c;
+            }
+            return null;
+        }
+
         public String getDescription() {
             return this.description;
         }

@@ -40,17 +40,21 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
 
     private final Context context;
     private final PlacesTaskParam taskParam;
-    private final Consumer<List<Marker>> callback;
+    private final OnPostExecuteListener callback;
     private List<Marker> markers;
     private GoogleMap map;
     private final BitmapDescriptor icon;
 
-    public FetchPlaces(Context context, PlacesTaskParam param, List<Marker> oldMarkers, Consumer<List<Marker>> callback) {
+    public interface OnPostExecuteListener {
+        void onPostExecute(List<Marker> markers);
+    }
+
+    public FetchPlaces(Context context, PlacesTaskParam param, List<Marker> oldMarkers, OnPostExecuteListener callback) {
         this.context = context;
         this.markers = oldMarkers;
         this.callback = callback;
         taskParam = param;
-        this.icon = creaIcona();
+        this.icon = Utils.creaIconaMarker(context, taskParam.getCategory());
     }
 
     @Override
@@ -137,7 +141,7 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
     protected void onPostExecute(List<Marker> markers) {
         super.onPostExecute(markers);
         // se specificata, chiamo la callback
-        if (callback != null) callback.accept(markers);
+        if (callback != null) callback.onPostExecute(markers);
     }
 
     private String createRequest() {
@@ -149,47 +153,29 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
         return requestBuilder;
     }
 
-    private BitmapDescriptor creaIcona() {
-
-        // TODO forse fare le icone a punta come i marker
-
-        int resId = -1;
-        switch (taskParam.getCategory()) {
-            case RESTAURANT:
-                resId = R.drawable.ic_restaurant_png;
-                break;
-            case MUSEUM:
-                resId = R.drawable.ic_museum_png;
-                break;
-            case ATM:
-                resId = R.drawable.ic_atm_png;
-                break;
-        }
-
-        if (resId != -1) {
-            Bitmap icona = BitmapFactory.decodeResource(context.getResources(), resId);
-            Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth() * 0.40), (int) (icona.getHeight() * 0.40), false);
-            return BitmapDescriptorFactory.fromBitmap(resisezIcon);
-        } else {
-            return BitmapDescriptorFactory.defaultMarker();
-        }
-    }
-
-    private static Bitmap creaBitmapRistorante() {
-        Bitmap icona = BitmapFactory.decodeFile("res/drawable/ic_restaurant_png.png");
-        Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth()*0.45), (int) (icona.getHeight()*0.45), false);
-        return resisezIcon;
-    }
-
-    private static Bitmap creaBitmapMuseo() {
-        Bitmap icona = BitmapFactory.decodeFile("res/drawable/ic_museum_png.png");
-        Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth()*0.45), (int) (icona.getHeight()*0.45), false);
-        return resisezIcon;
-    }
-
-    private static Bitmap creaBitmapAtm() {
-        Bitmap icona = BitmapFactory.decodeFile("res/drawable/ic_atm_png.png");
-        Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth()*0.45), (int) (icona.getHeight()*0.45), false);
-        return resisezIcon;
-    }
+//    private BitmapDescriptor creaIcona() {
+//
+//        // TODO forse fare le icone a punta come i marker
+//
+//        int resId = -1;
+//        switch (taskParam.getCategory()) {
+//            case RESTAURANT:
+//                resId = R.drawable.ic_restaurant_png;
+//                break;
+//            case MUSEUM:
+//                resId = R.drawable.ic_museum_png;
+//                break;
+//            case ATM:
+//                resId = R.drawable.ic_atm_png;
+//                break;
+//        }
+//
+//        if (resId != -1) {
+//            Bitmap icona = BitmapFactory.decodeResource(context.getResources(), resId);
+//            Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth() * 0.35), (int) (icona.getHeight() * 0.35), false);
+//            return BitmapDescriptorFactory.fromBitmap(resisezIcon);
+//        } else {
+//            return BitmapDescriptorFactory.defaultMarker();
+//        }
+//    }
 }

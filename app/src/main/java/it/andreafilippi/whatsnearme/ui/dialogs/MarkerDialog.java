@@ -284,7 +284,6 @@ public class MarkerDialog extends DialogFragment {
                 isLuogoGiaVisitato = true;
                 requireActivity().runOnUiThread(() -> {
                     binding.segnaVisitatoBtn.setBackgroundResource(R.drawable.rounded_background_red);
-//                    Toast.makeText(requireContext(), "Luogo salvato con successo nel diario!", Toast.LENGTH_SHORT).show();
                     Utils.makeToastShort(requireContext(), "Luogo salvato nel diario!");
                 });
             } else {
