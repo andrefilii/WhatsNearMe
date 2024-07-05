@@ -10,6 +10,16 @@ public class Place implements Serializable {
     private Double lat;
     private Double lng;
 
+    public Place() {
+
+    }
+
+    public Place(String nome, Double lat, Double lng) {
+        this.name = nome;
+        this.lat = lat;
+        this.lng = lng;
+    }
+
     public String getId() {
         return id;
     }

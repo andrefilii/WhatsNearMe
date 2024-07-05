@@ -11,12 +11,16 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
 public class BluetoothDeviceListDialog extends DialogFragment {
-    private final DialogInterface.OnClickListener callback;
-    private ArrayAdapter<String> devicesAdapter;
+    private final OnClickListener listener;
+    private final ArrayAdapter<String> devicesAdapter;
 
-    public BluetoothDeviceListDialog(ArrayAdapter<String> adapter, DialogInterface.OnClickListener listener) {
+    public interface OnClickListener {
+        void onClick(DialogInterface dialogInterface, int which);
+    }
+
+    public BluetoothDeviceListDialog(ArrayAdapter<String> adapter, OnClickListener listener) {
         devicesAdapter = adapter;
-        callback = listener;
+        this.listener = listener;
     }
 
     @NonNull
@@ -27,8 +31,8 @@ public class BluetoothDeviceListDialog extends DialogFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Dispositivi Bluetooth nelle vicinanze");
         builder.setAdapter(devicesAdapter, (dialog, which) -> {
-            if (callback != null)
-                callback.onClick(dialog, which);
+            if (listener != null)
+                listener.onClick(dialog, which);
         });
 
         return builder.create();

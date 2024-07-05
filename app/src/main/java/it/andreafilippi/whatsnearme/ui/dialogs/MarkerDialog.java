@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.nfc.NdefMessage;
 import android.nfc.NfcAdapter;
 import android.os.Bundle;
 import android.util.Log;
@@ -40,6 +41,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
 
 import it.andreafilippi.whatsnearme.R;
@@ -59,11 +63,11 @@ public class MarkerDialog extends DialogFragment {
     private DialogMarkerBinding binding;
     private Place place;
     private PopupMenu shareMenu;
-    private NfcAdapter nfcAdapter;
     private BluetoothAdapter bluetoothAdapter;
     private ArrayAdapter<String> devicesArrayAdapter;
     private DatabaseHelper databaseHelper;
     private Boolean isLuogoGiaVisitato;
+    private List<String> devicesMac;
 
     private final BroadcastReceiver deviceFoundReceiver = new BroadcastReceiver() {
         @SuppressWarnings("MissingPermission")
@@ -76,7 +80,8 @@ public class MarkerDialog extends DialogFragment {
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC
                 Log.d("BT DISCOVER", deviceName + " " + deviceHardwareAddress);
-                if (deviceName != null) {
+                if (deviceName != null && !devicesMac.contains(deviceHardwareAddress)) {
+                    devicesMac.add(deviceHardwareAddress);
                     devicesArrayAdapter.add(deviceName + "\n" + deviceHardwareAddress);
                 }
             }
@@ -129,7 +134,6 @@ public class MarkerDialog extends DialogFragment {
                     if (Boolean.TRUE.equals(btScanGranted) && Boolean.TRUE.equals(btConnectGranted)) {
                         startBtDiscovery();
                     } else {
-//                        Toast.makeText(requireContext(), "Permesso negato :(", Toast.LENGTH_SHORT).show();
                         Utils.makeToastShort(requireContext(), "Permessi non concessi");
                     }
                 });
@@ -142,9 +146,7 @@ public class MarkerDialog extends DialogFragment {
                             salvaLuogoNelDiario(data.getStringExtra(CameraActivity.EXTRA_IMAGE_PATH));
                         }
                     } else {
-                        Toast.makeText(requireContext(), "Errore durante l'acquisizione", Toast.LENGTH_SHORT).show();
                         Utils.makeToastShort(requireContext(), "Errore durante lo scatto");
-//                        salvaLuogoNelDiario(null);
                     }
                 });
 
@@ -191,12 +193,6 @@ public class MarkerDialog extends DialogFragment {
 
         getDialog().setCanceledOnTouchOutside(true);
 
-        nfcAdapter = NfcAdapter.getDefaultAdapter(requireContext());
-        if (nfcAdapter == null) {
-            // nfc non supportato
-            shareMenu.getMenu().findItem(R.id.option_nfc).setEnabled(false);
-        }
-
         BluetoothManager bluetoothManager = requireActivity().getSystemService(BluetoothManager.class);
         bluetoothAdapter = bluetoothManager.getAdapter();
         if (bluetoothAdapter == null) {
@@ -211,13 +207,6 @@ public class MarkerDialog extends DialogFragment {
         }
 
         return binding.getRoot();
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        if (nfcAdapter != null)
-            nfcAdapter.disableForegroundDispatch(requireActivity());
     }
 
     @Override
@@ -306,7 +295,7 @@ public class MarkerDialog extends DialogFragment {
     }
 
     private void onIndicazioniBtnClick(View view) {
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(getPlaceLocationUri()));
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getPlaceLocationUri(place)));
         intent.setPackage(null);
         startActivity(intent);
     }
@@ -318,10 +307,6 @@ public class MarkerDialog extends DialogFragment {
     private boolean onMenuItemClickListener(MenuItem menuItem) {
         int menuItemId = menuItem.getItemId();
 
-        if (menuItemId == R.id.option_nfc) {
-            onShareMenuNfcClick();
-            return true;
-        }
         if (menuItemId == R.id.option_bluetooth) {
             onShareMenuBluetoothClick();
             return true;
@@ -334,13 +319,8 @@ public class MarkerDialog extends DialogFragment {
         return false;
     }
 
-    private void onShareMenuNfcClick() {
-        // TODO, forse non si può fare
-    }
-
     private void onShareMenuBluetoothClick() {
         if (!bluetoothAdapter.isEnabled()) {
-//            Toast.makeText(requireContext(), "Bluetooth non attivo!", Toast.LENGTH_SHORT).show();
             Utils.makeToastShort(requireContext(), "Bluetooth non attivo!");
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivity(enableBtIntent);
@@ -349,7 +329,6 @@ public class MarkerDialog extends DialogFragment {
         // è abilitato, inizio a cercare dispositivi vicini
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED ||
                 ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-//            Toast.makeText(requireContext(), "Per favore accettare e riprovare", Toast.LENGTH_SHORT).show();
             bluetoothScanPermissionLauncher.launch(new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT});
         } else {
             startBtDiscovery();
@@ -358,6 +337,7 @@ public class MarkerDialog extends DialogFragment {
 
     @SuppressWarnings("MissingPermission")
     private void startBtDiscovery() {
+        devicesMac = new ArrayList<>();
         devicesArrayAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_single_choice);
         BluetoothDeviceListDialog dialog = new BluetoothDeviceListDialog(devicesArrayAdapter, this::onBtListClick);
         dialog.show(getParentFragmentManager(), "bt_list_dialog");
@@ -383,16 +363,14 @@ public class MarkerDialog extends DialogFragment {
         } else {
             // provo a fare il pairing, se va a buon fine verrà chiamato il receiver definito sopra
             if (device.createBond())
-//                Toast.makeText(requireContext(), "Inizio pairing", Toast.LENGTH_SHORT).show();
                 Utils.makeToastShort(requireContext(), "Inizio pairing");
             else
-//                Toast.makeText(requireContext(), "Errore pairing", Toast.LENGTH_SHORT).show();
                 Utils.makeToastShort(requireContext(), "Errore pairing");
         }
     }
 
     private void onShareMenuOtherClick() {
-        String uri = getPlaceLocationUri();
+        String uri = Utils.getPlaceLocationUri(place);
 
         Intent sharingIntent = new Intent(android.content.Intent.ACTION_SEND);
         sharingIntent.setType("text/plain");
@@ -400,10 +378,6 @@ public class MarkerDialog extends DialogFragment {
         sharingIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, ShareSub);
         sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, uri);
         startActivity(Intent.createChooser(sharingIntent, "Condividi con"));
-    }
-
-    private String getPlaceLocationUri() {
-        return "https://maps.google.com/maps?q=" + place.getLat() + "," + place.getLng() + "+(" + place.getName().replace(" ", "+") + ")";
     }
 
     private void startBtConnection(BluetoothDevice device) {
@@ -418,21 +392,17 @@ public class MarkerDialog extends DialogFragment {
             // FINALMENTE, invio i dati
             bs.connect();
             OutputStream os = bs.getOutputStream();
-            os.write(getPlaceLocationUri().getBytes(StandardCharsets.UTF_8));
+            os.write(Utils.getPlaceLocationUri(place).getBytes(StandardCharsets.UTF_8));
             os.flush();
 
             requireActivity().runOnUiThread(() -> {
                 Utils.makeToastShort(requireContext(), "Trasferimento andato a buon fine");
             });
 
+            // attendo di riceve un singolo byte di modo da attendere che l'altro dispositivo
+            //  abbia ricevuto il messaggio
             bs.getInputStream().read();
             bs.close();
-//            try {
-//                Thread.sleep(10000);
-//            } catch (InterruptedException e) {
-//
-//            }
-
 
         } catch (IOException e) {
             Log.e("BT CONNECT", e.toString());

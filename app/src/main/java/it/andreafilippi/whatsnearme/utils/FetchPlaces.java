@@ -1,10 +1,14 @@
 package it.andreafilippi.whatsnearme.utils;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.util.Log;
 
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -34,15 +38,19 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
 
     private static final String ENDPOINT = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?";
 
+    private final Context context;
     private final PlacesTaskParam taskParam;
     private final Consumer<List<Marker>> callback;
     private List<Marker> markers;
     private GoogleMap map;
+    private final BitmapDescriptor icon;
 
-    public FetchPlaces(PlacesTaskParam param, List<Marker> oldMarkers, Consumer<List<Marker>> callback) {
+    public FetchPlaces(Context context, PlacesTaskParam param, List<Marker> oldMarkers, Consumer<List<Marker>> callback) {
+        this.context = context;
         this.markers = oldMarkers;
         this.callback = callback;
         taskParam = param;
+        this.icon = creaIcona();
     }
 
     @Override
@@ -116,13 +124,13 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
         LatLng latLng = new LatLng(place.getLat(), place.getLng());
         Marker marker = map.addMarker(new MarkerOptions()
                         .title(place.getName())
+                        .icon(icon)
                         .position(latLng));
         if (marker != null) {
             // informazioni poi da usare nel dialog
             marker.setTag(place);
             markers.add(marker);
         }
-        // TODO mettere anche le icone personalizzate in base alla categoria della ricerca
     }
 
     @Override
@@ -139,5 +147,49 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
                 "&type=" + taskParam.getCategory().getDescription() +
                 "&key=" + taskParam.getApiKey();
         return requestBuilder;
+    }
+
+    private BitmapDescriptor creaIcona() {
+
+        // TODO forse fare le icone a punta come i marker
+
+        int resId = -1;
+        switch (taskParam.getCategory()) {
+            case RESTAURANT:
+                resId = R.drawable.ic_restaurant_png;
+                break;
+            case MUSEUM:
+                resId = R.drawable.ic_museum_png;
+                break;
+            case ATM:
+                resId = R.drawable.ic_atm_png;
+                break;
+        }
+
+        if (resId != -1) {
+            Bitmap icona = BitmapFactory.decodeResource(context.getResources(), resId);
+            Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth() * 0.40), (int) (icona.getHeight() * 0.40), false);
+            return BitmapDescriptorFactory.fromBitmap(resisezIcon);
+        } else {
+            return BitmapDescriptorFactory.defaultMarker();
+        }
+    }
+
+    private static Bitmap creaBitmapRistorante() {
+        Bitmap icona = BitmapFactory.decodeFile("res/drawable/ic_restaurant_png.png");
+        Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth()*0.45), (int) (icona.getHeight()*0.45), false);
+        return resisezIcon;
+    }
+
+    private static Bitmap creaBitmapMuseo() {
+        Bitmap icona = BitmapFactory.decodeFile("res/drawable/ic_museum_png.png");
+        Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth()*0.45), (int) (icona.getHeight()*0.45), false);
+        return resisezIcon;
+    }
+
+    private static Bitmap creaBitmapAtm() {
+        Bitmap icona = BitmapFactory.decodeFile("res/drawable/ic_atm_png.png");
+        Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth()*0.45), (int) (icona.getHeight()*0.45), false);
+        return resisezIcon;
     }
 }

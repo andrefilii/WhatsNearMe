@@ -36,7 +36,7 @@
             android:id="@+id/btnATM"
             style="@style/MapButtonStyle"
             android:text="ATM"
-            android:drawableLeft="@drawable/ic_wc" />
+            android:drawableLeft="@drawable/ic_atm" />
 
     </LinearLayout>
 

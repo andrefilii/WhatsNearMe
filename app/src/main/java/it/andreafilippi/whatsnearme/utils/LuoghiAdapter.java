@@ -76,6 +76,32 @@ public class LuoghiAdapter extends RecyclerView.Adapter<LuoghiAdapter.LuogoViewH
         return cursor.getCount();
     }
 
+    public Cursor getCursor() {
+        return cursor;
+    }
+
+    public void changeCursor(Cursor cursor) {
+        Cursor old = swapCursor(cursor);
+        if (old != null) {
+            old.close();
+        }
+    }
+
+    public Cursor swapCursor(Cursor newCursor) {
+        if (newCursor == cursor) {
+            return null;
+        }
+        Cursor oldCursor = cursor;
+        cursor = newCursor;
+        if (newCursor != null) {
+            // notifico che deve essere rifatta la lista
+            notifyDataSetChanged();
+        } else {
+            notifyItemRangeRemoved(0, getItemCount());
+        }
+        return oldCursor;
+    }
+
     public static class LuogoViewHolder extends RecyclerView.ViewHolder {
         protected TextView nomeLuogo;
         protected TextView coordinate;

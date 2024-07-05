@@ -286,6 +286,9 @@ public class MainActivity extends AppCompatActivity {
                 });
             } catch (IOException e) {
                 Log.e("BT CONNECTION", e.toString());
+                runOnUiThread(() -> {
+                    Utils.makeToastShort(this, "Errore durante la ricezione del messaggio");
+                });
             }
         } catch (IOException e) {
             Log.e("BT CONNECTION", e.toString());

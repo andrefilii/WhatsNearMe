@@ -151,9 +151,6 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             binding.btnMuseums.setEnabled(false);
             binding.btnATM.setEnabled(false);
 
-//            Toast.makeText(requireContext(),
-//                    "Abilita la posizione per utilizzare la funzione di ricerca",
-//                    Toast.LENGTH_LONG).show();
             Utils.makeToastShort(requireContext(), "Abilita la posizione per utilizzare la funzione di ricerca");
         }
 
@@ -169,6 +166,21 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
                                     .map(m -> new MarkerData(m.getPosition(), m.getTitle(), (Place) m.getTag()))
                                     .collect(Collectors.toList())
                     ));
+    }
+
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (!hidden) {
+            // sono tornato sulla schermata, ridisegno la posizione e mi ci centro
+            if (checkLocationPermission() && currentLocationMarker != null) {
+                isFirstLocationUpdate = true;
+                Location location = new Location("gps");
+                location.setLatitude(currentLocationMarker.getPosition().latitude);
+                location.setLongitude(currentLocationMarker.getPosition().longitude);
+                updateUserLocationOnMap(location);
+            }
+        }
     }
 
     @Override
@@ -265,8 +277,15 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     private void updateUserLocationOnMap(Location location) {
         LatLng position = new LatLng(location.getLatitude(), location.getLongitude());
 
-        if (searchRadiusCircle != null)
-            searchRadiusCircle.remove();
+        if (searchRadiusCircle == null) {
+            searchRadiusCircle = myMap.addCircle(new CircleOptions()
+                    .center(position)
+                    .radius(getSearchRadius())
+            );
+        } else {
+            searchRadiusCircle.setCenter(position);
+            searchRadiusCircle.setRadius(getSearchRadius());
+        }
 
         if (currentLocationMarker == null) {
             currentLocationMarker =
@@ -278,10 +297,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             currentLocationMarker.setPosition(position);
         }
 
-        searchRadiusCircle = myMap.addCircle(new CircleOptions()
-                .center(position)
-                .radius(getSearchRadius())
-        );
+
 
         Log.d("MAP", "Marker aggiornato: " + currentLocationMarker.getPosition());
 
@@ -339,7 +355,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
                 .setCategory(category)
                 .setApiKey(BuildConfig.MAPS_API_KEY);
 
-        new FetchPlaces(params, mapMarkers, this::onFetchPlacesCompleted).execute();
+        new FetchPlaces(requireContext(), params, mapMarkers, this::onFetchPlacesCompleted).execute();
     }
 
     private void onFetchPlacesCompleted(List<Marker> markers) {
