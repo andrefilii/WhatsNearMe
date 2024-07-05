@@ -3,7 +3,12 @@ package it.andreafilippi.whatsnearme.utils;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
 import android.widget.Toast;
+
+import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.graphics.drawable.DrawableCompat;
 
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -29,20 +34,26 @@ public class Utils {
         int resId = -1;
         switch (category) {
             case RESTAURANT:
-                resId = R.drawable.ic_restaurant_png;
+                resId = R.drawable.ic_marker_restaurant;
                 break;
             case MUSEUM:
-                resId = R.drawable.ic_museum_png;
+                resId = R.drawable.ic_marker_museum;
                 break;
             case ATM:
-                resId = R.drawable.ic_atm_png;
+                resId = R.drawable.ic_marker_atm;
                 break;
         }
 
         if (resId != -1) {
-            Bitmap icona = BitmapFactory.decodeResource(context.getResources(), resId);
-            Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth() * 0.35), (int) (icona.getHeight() * 0.35), false);
-            return BitmapDescriptorFactory.fromBitmap(resisezIcon);
+            Drawable vectorDrawable = AppCompatResources.getDrawable(context, resId);
+            assert vectorDrawable != null;
+            Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(),
+                    vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            vectorDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+            vectorDrawable.draw(canvas);
+            Bitmap resisedIcon = Bitmap.createScaledBitmap(bitmap, (int) (bitmap.getWidth() * 0.30), (int) (bitmap.getHeight() * 0.30), false);
+            return BitmapDescriptorFactory.fromBitmap(resisedIcon);
         } else {
             return BitmapDescriptorFactory.defaultMarker();
         }
