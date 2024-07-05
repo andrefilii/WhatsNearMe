@@ -289,42 +289,4 @@ public class MainActivity extends AppCompatActivity {
         btReceiverTask = new BtReceiverTask(this, btAdapter, getString(R.string.btConnectionName), UUID.fromString(getString(R.string.btConnectionUID)), dialog, progressBar, msgReceived);
         btReceiverTask.execute();
     }
-
-//    @SuppressWarnings("MissingPermission")
-//    private void connectAndReceiveData() {
-//        try {
-//            BluetoothServerSocket bss =
-//                    btAdapter.listenUsingRfcommWithServiceRecord(
-//                            getString(R.string.btConnectionName),
-//                            UUID.fromString(getString(R.string.btConnectionUID)));
-//
-//            BluetoothSocket bs = bss.accept(30000);
-//            bss.close();
-//            try {
-//                InputStream is = bs.getInputStream();
-//                byte[] buffer = new byte[1024];
-//                int bytes = is.read(buffer);
-//                String readMessage = new String(buffer, 0, bytes);
-//                Log.d("BT CONNECTION", readMessage);
-//
-//                bs.getOutputStream().write(0);
-//
-//                bs.close();
-//
-//                runOnUiThread(() -> {
-//                    Utils.makeToastLong(this, "Messaggio ricevuto: " + readMessage);
-//                });
-//            } catch (IOException e) {
-//                Log.e("BT CONNECTION", e.toString());
-//                runOnUiThread(() -> {
-//                    Utils.makeToastShort(this, "Errore durante la ricezione del messaggio");
-//                });
-//            }
-//        } catch (IOException e) {
-//            Log.e("BT CONNECTION", e.toString());
-//            runOnUiThread(() -> {
-//                Utils.makeToastShort(this, "Errore in fase di connessione");
-//            });
-//        }
-//    }
 }

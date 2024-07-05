@@ -1,6 +1,5 @@
 package it.andreafilippi.whatsnearme.utils;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;

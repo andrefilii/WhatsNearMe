@@ -16,7 +16,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:visibility="gone"
-        android:text="Waiting for message..."
+        android:text="Attendo il messaggio..."
         android:textSize="18sp"
         android:paddingTop="20dp" />
 </LinearLayout>

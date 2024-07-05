@@ -94,34 +94,36 @@ public class DiarioFragment extends Fragment {
 
     @SuppressLint("range")
     private void showDetailsDialog(int position) {
-        Cursor cursor = databaseHelper.getAllLuoghi();
-        if (cursor.moveToPosition(position)) {
-            String id = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_ID));
-            String nome = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_NOME));
-            Double lat = cursor.getDouble(cursor.getColumnIndex(DatabaseHelper.COLUMN_LATITUDINE));
-            Double lng = cursor.getDouble(cursor.getColumnIndex(DatabaseHelper.COLUMN_LONGITUDINE));
-            String imageUri = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_FOTO_PATH));
+        new Thread(() -> {
+            Cursor cursor = databaseHelper.getAllLuoghi();
+            if (cursor.moveToPosition(position)) {
+                String id = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_ID));
+                String nome = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_NOME));
+                Double lat = cursor.getDouble(cursor.getColumnIndex(DatabaseHelper.COLUMN_LATITUDINE));
+                Double lng = cursor.getDouble(cursor.getColumnIndex(DatabaseHelper.COLUMN_LONGITUDINE));
+                String imageUri = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_FOTO_PATH));
 
-            LayoutInflater inflater = requireActivity().getLayoutInflater();
-            DialogDettaglioDiarioBinding dialogBinding = DialogDettaglioDiarioBinding.inflate(inflater, null, false);
+                LayoutInflater inflater = requireActivity().getLayoutInflater();
+                DialogDettaglioDiarioBinding dialogBinding = DialogDettaglioDiarioBinding.inflate(inflater, null, false);
 
-            dialogBinding.imageView.setImageURI(Uri.parse("file://" + imageUri));
+                dialogBinding.imageView.setImageURI(Uri.parse("file://" + imageUri));
 
-            AlertDialog.Builder builder = new AlertDialog.Builder(requireContext())
-                    .setTitle(nome)
-                    .setView(dialogBinding.getRoot())
-                    .setPositiveButton("Apri su Maps", (dialog, which) -> {
-                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getPlaceLocationUri(new Place(nome, lat, lng))));
-                        intent.setPackage(null);
-                        startActivity(intent);
-                    })
-                    .setNegativeButton("Rimuovi", (dialog, which) -> {
-                        confermaRimozione(id);
-                    });
+                AlertDialog.Builder builder = new AlertDialog.Builder(requireContext())
+                        .setTitle(nome)
+                        .setView(dialogBinding.getRoot())
+                        .setPositiveButton("Apri su Maps", (dialog, which) -> {
+                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getPlaceLocationUri(new Place(nome, lat, lng))));
+                            intent.setPackage(null);
+                            startActivity(intent);
+                        })
+                        .setNegativeButton("Rimuovi", (dialog, which) -> {
+                            confermaRimozione(id);
+                        });
 
-            builder.create().show();
-        }
-        cursor.close();
+                requireActivity().runOnUiThread(() -> builder.create().show());
+            }
+            cursor.close();
+        }).start();
     }
 
     private void confermaRimozione(String id) {

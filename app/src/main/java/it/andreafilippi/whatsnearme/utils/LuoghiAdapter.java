@@ -15,6 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.io.File;
 import java.util.Locale;
 
 import it.andreafilippi.whatsnearme.R;
@@ -64,8 +65,14 @@ public class LuoghiAdapter extends RecyclerView.Adapter<LuoghiAdapter.LuogoViewH
         holder.coordinate.setText(String.format(Locale.US, "%f, %f", lat, lng));
 
         if (imagePath != null && !imagePath.isBlank()) {
-            Uri imageUri = Uri.parse("file://" + imagePath);
-            holder.luogoPhoto.setImageURI(imageUri);
+            File imageFile = new File(imagePath);
+            if (imageFile.exists()) {
+                Uri imageUri = Uri.parse("file://" + imagePath);
+                holder.luogoPhoto.setImageURI(imageUri);
+            } else {
+                // era associata una foto, ma è stat eliminata dal sistema
+                holder.luogoPhoto.setImageDrawable(noImagePlaceholder);
+            }
         } else {
             holder.luogoPhoto.setImageDrawable(noImagePlaceholder);
         }

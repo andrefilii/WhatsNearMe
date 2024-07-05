@@ -152,30 +152,4 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
                 "&key=" + taskParam.getApiKey();
         return requestBuilder;
     }
-
-//    private BitmapDescriptor creaIcona() {
-//
-//        // TODO forse fare le icone a punta come i marker
-//
-//        int resId = -1;
-//        switch (taskParam.getCategory()) {
-//            case RESTAURANT:
-//                resId = R.drawable.ic_restaurant_png;
-//                break;
-//            case MUSEUM:
-//                resId = R.drawable.ic_museum_png;
-//                break;
-//            case ATM:
-//                resId = R.drawable.ic_atm_png;
-//                break;
-//        }
-//
-//        if (resId != -1) {
-//            Bitmap icona = BitmapFactory.decodeResource(context.getResources(), resId);
-//            Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth() * 0.35), (int) (icona.getHeight() * 0.35), false);
-//            return BitmapDescriptorFactory.fromBitmap(resisezIcon);
-//        } else {
-//            return BitmapDescriptorFactory.defaultMarker();
-//        }
-//    }
 }

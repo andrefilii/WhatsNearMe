@@ -13,9 +13,6 @@
 
     <string name="btConnectionName">it.andreafilippi.whatsnearme receiver</string>
     <string name="btConnectionUID">57ddae30-1aee-4aec-bba0-0488a8c35132</string>
-    <string name="dummy_button">Dummy Button</string>
-    <string name="dummy_content">DUMMY\nCONTENT</string>
-    <string name="title_activity_fullscreen">FullscreenActivity</string>
 
     <!--    PORTA SERIALE STANDARD PER TEST: -->
     <!--    <string name="btConnectionUID">00001101-0000-1000-8000-00805f9b34fb</string>-->

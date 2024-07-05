@@ -13,8 +13,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.nfc.NdefMessage;
-import android.nfc.NfcAdapter;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -23,7 +21,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.PopupMenu;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -35,16 +32,15 @@ import androidx.fragment.app.DialogFragment;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipDrawable;
 import com.google.android.material.chip.ChipGroup;
-import com.google.android.material.snackbar.Snackbar;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.DialogMarkerBinding;
@@ -56,17 +52,21 @@ import it.andreafilippi.whatsnearme.utils.Utils;
 public class MarkerDialog extends DialogFragment {
     public static final String ARG_PLACE = "place";
 
-    private ActivityResultLauncher<String[]> bluetoothScanPermissionLauncher;
-
-    private ActivityResultLauncher<Intent> cameraLauncher;
+    private static final int VISITATO_IDK = -1;
+    private static final int VISITATO_YES = 1;
+    private static final int VISITATO_NO = 0;
 
     private DialogMarkerBinding binding;
+
+    private ActivityResultLauncher<String[]> bluetoothScanPermissionLauncher;
+    private ActivityResultLauncher<Intent> cameraLauncher;
+
     private Place place;
     private PopupMenu shareMenu;
     private BluetoothAdapter bluetoothAdapter;
     private ArrayAdapter<String> devicesArrayAdapter;
     private DatabaseHelper databaseHelper;
-    private Boolean isLuogoGiaVisitato;
+    private AtomicInteger isLuogoGiaVisitato;
     private List<String> devicesMac;
 
     private final BroadcastReceiver deviceFoundReceiver = new BroadcastReceiver() {
@@ -114,7 +114,7 @@ public class MarkerDialog extends DialogFragment {
     }
 
     public MarkerDialog() {
-        // costruttore vuoto necessario
+
     }
 
     @Nullable
@@ -163,11 +163,15 @@ public class MarkerDialog extends DialogFragment {
         binding.condividiBtn.setOnClickListener(this::onCondividiBtnClick);
 
         databaseHelper = new DatabaseHelper(requireContext());
-        isLuogoGiaVisitato = null;
+        isLuogoGiaVisitato = new AtomicInteger(VISITATO_IDK);
         new Thread(() -> {
-            isLuogoGiaVisitato = databaseHelper.doesLuogoExist(place.getId());
+            if(databaseHelper.doesLuogoExist(place.getId())) {
+                isLuogoGiaVisitato.set(VISITATO_YES);
+            } else {
+                isLuogoGiaVisitato.set(VISITATO_NO);
+            }
             requireActivity().runOnUiThread(() -> {
-                if (isLuogoGiaVisitato) {
+                if (isLuogoGiaVisitato.get() == VISITATO_YES) {
                     binding.segnaVisitatoBtn.setBackgroundResource(R.drawable.rounded_background_red);
                 } else {
                     binding.segnaVisitatoBtn.setBackgroundResource(R.drawable.rounded_background_grey);
@@ -231,23 +235,21 @@ public class MarkerDialog extends DialogFragment {
     }
 
     private void onSegnaVisitatoBtnClick(View view) {
-        if (isLuogoGiaVisitato == null) {
-//            Toast.makeText(requireContext(), "Attendere il caricamento dei dati", Toast.LENGTH_SHORT).show();
+        if (isLuogoGiaVisitato.get() == VISITATO_IDK) {
             Utils.makeToastShort(requireContext(), "Attendere il caricamento dei dati");
             return;
-        } else if (isLuogoGiaVisitato) {
+        } else if (isLuogoGiaVisitato.get() == VISITATO_YES) {
             new AlertDialog.Builder(requireContext())
                     .setTitle("Conferma rimozione")
                     .setMessage("Sei sicuro di voler rimuovere il luogo dal diario di viaggio?")
                     .setPositiveButton("Si", (dialog, which) -> {
-                        isLuogoGiaVisitato = null;
+                        isLuogoGiaVisitato.set(VISITATO_IDK);
                         new Thread(() -> {
                             if (databaseHelper.removeLuogo(place.getId())) {
                                 // è andato a buon fine
-                                isLuogoGiaVisitato = false;
+                                isLuogoGiaVisitato.set(VISITATO_NO);
                                 requireActivity().runOnUiThread(() -> {
                                     binding.segnaVisitatoBtn.setBackgroundResource(R.drawable.rounded_background_grey);
-//                                    Toast.makeText(requireContext(), "Luogo rimosso dal diario", Toast.LENGTH_SHORT).show();
                                     Utils.makeToastShort(requireContext(), "Luogo rimosso dal diario");
                                 });
                             } else {
@@ -281,7 +283,7 @@ public class MarkerDialog extends DialogFragment {
         if (pathFoto != null) Log.d("MD-SAVE-PHOTO", pathFoto);
         new Thread(() -> {
             if (databaseHelper.addLuogo(place, pathFoto) != -1) {
-                isLuogoGiaVisitato = true;
+                isLuogoGiaVisitato.set(VISITATO_YES);
                 requireActivity().runOnUiThread(() -> {
                     binding.segnaVisitatoBtn.setBackgroundResource(R.drawable.rounded_background_red);
                     Utils.makeToastShort(requireContext(), "Luogo salvato nel diario!");
@@ -299,7 +301,6 @@ public class MarkerDialog extends DialogFragment {
         startActivity(intent);
     }
 
-    /* ---------------------- */
 
     /* -- GESTIONE MENU CONDIVISIONE -- */
 

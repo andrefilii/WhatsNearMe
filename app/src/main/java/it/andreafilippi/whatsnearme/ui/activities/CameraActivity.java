@@ -57,7 +57,6 @@ public class CameraActivity extends AppCompatActivity {
                         // Permessi concessi, avvia la fotocamera
                         startCamera();
                     } else {
-//                        Toast.makeText(this, "Permesso non dato :(", Toast.LENGTH_SHORT).show();
                         Utils.makeToastShort(this, "Permessi non concessi");
                         setResult(RESULT_CANCELED);
                         finish();
