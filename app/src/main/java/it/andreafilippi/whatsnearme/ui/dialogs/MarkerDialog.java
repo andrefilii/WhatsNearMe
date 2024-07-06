@@ -67,7 +67,7 @@ public class MarkerDialog extends DialogFragment {
     private ArrayAdapter<String> devicesArrayAdapter;
     private DatabaseHelper databaseHelper;
     private AtomicInteger isLuogoGiaVisitato;
-    private List<String> devicesMac;
+    private List<String> devicesMac = new ArrayList<>();
 
     private final BroadcastReceiver deviceFoundReceiver = new BroadcastReceiver() {
         @SuppressWarnings("MissingPermission")
@@ -97,6 +97,7 @@ public class MarkerDialog extends DialogFragment {
                 if (bondState == BluetoothDevice.BOND_BONDED) {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice.class);
                     if (device != null) {
+                        Utils.makeToastShort(requireContext(), "Pairing effettuato, invio il link");
                         startBtConnection(device);
                     }
                 }
@@ -203,11 +204,11 @@ public class MarkerDialog extends DialogFragment {
             // il dispositivo non supporta il bluetooth
             shareMenu.getMenu().findItem(R.id.option_bluetooth).setEnabled(false);
         } else {
-            IntentFilter f1 = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-            requireActivity().registerReceiver(deviceFoundReceiver, f1);
+            requireActivity().registerReceiver(deviceFoundReceiver,
+                    new IntentFilter(BluetoothDevice.ACTION_FOUND));
 
-            IntentFilter f2 = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-            requireActivity().registerReceiver(bondChangedReceiver, f2);
+            requireActivity().registerReceiver(bondChangedReceiver,
+                    new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
         }
 
         return binding.getRoot();
@@ -337,11 +338,17 @@ public class MarkerDialog extends DialogFragment {
 
     @SuppressWarnings("MissingPermission")
     private void startBtDiscovery() {
-        devicesMac = new ArrayList<>();
+        devicesMac.clear();
         devicesArrayAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_single_choice);
-        BluetoothDeviceListDialog dialog = new BluetoothDeviceListDialog(devicesArrayAdapter, this::onBtListClick);
+        BluetoothDeviceListDialog dialog = new BluetoothDeviceListDialog(devicesArrayAdapter, this::onBtListClick, this::onBtDeviceCancel);
         dialog.show(getParentFragmentManager(), "bt_list_dialog");
         bluetoothAdapter.startDiscovery();
+    }
+
+    private void onBtDeviceCancel(DialogInterface dialog) {
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
+            bluetoothAdapter.cancelDiscovery();
+        }
     }
 
     private void onBtListClick(DialogInterface dialog, int which) {
@@ -351,7 +358,7 @@ public class MarkerDialog extends DialogFragment {
         }
 
         // recupero l'indirizzo MAC (è scritto nella lista)
-        dialog.cancel();
+        dialog.dismiss();
         String deviceInfo = devicesArrayAdapter.getItem(which);
         String deviceMAC = deviceInfo.substring(deviceInfo.length() - 17);
 

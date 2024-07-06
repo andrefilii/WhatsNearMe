@@ -181,9 +181,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        getSupportFragmentManager().putFragment(outState, MAP_FRAG, mapsFragment);
-        getSupportFragmentManager().putFragment(outState, DIARY_FRAG, diarioFragment);
-        getSupportFragmentManager().putFragment(outState, SETTINGS_FRAG, settingsFragment);
+        if (mapsFragment != null)
+            getSupportFragmentManager().putFragment(outState, MAP_FRAG, mapsFragment);
+        if (diarioFragment != null)
+            getSupportFragmentManager().putFragment(outState, DIARY_FRAG, diarioFragment);
+        if (settingsFragment != null)
+            getSupportFragmentManager().putFragment(outState, SETTINGS_FRAG, settingsFragment);
 
         int curFrag = -1;
         if (currentFragment != null) {

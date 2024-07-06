@@ -6,7 +6,7 @@
     <!-- Preference Titles -->
     <string name="maps_header">Ricerca</string>
 
-    <string name="radius_title">Raggio ricerca (mt)</string>
+    <string name="radius_title">Raggio di ricerca (mt)</string>
     <string name="condividi">Condividi</string>
     <string name="segna">Segna</string>
     <string name="indicazioni">Indicazioni</string>

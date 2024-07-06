@@ -11,16 +11,22 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
 public class BluetoothDeviceListDialog extends DialogFragment {
-    private final OnClickListener listener;
+    private final OnClickListener onClickListener;
+    private final OnCancelListener onCancelListener;
     private final ArrayAdapter<String> devicesAdapter;
 
     public interface OnClickListener {
         void onClick(DialogInterface dialogInterface, int which);
     }
 
-    public BluetoothDeviceListDialog(ArrayAdapter<String> adapter, OnClickListener listener) {
+    public interface OnCancelListener {
+        void onCancel(DialogInterface dialog);
+    }
+
+    public BluetoothDeviceListDialog(ArrayAdapter<String> adapter, OnClickListener onClickListener, OnCancelListener cancelListener) {
         devicesAdapter = adapter;
-        this.listener = listener;
+        this.onClickListener = onClickListener;
+        this.onCancelListener = cancelListener;
     }
 
     @NonNull
@@ -31,11 +37,22 @@ public class BluetoothDeviceListDialog extends DialogFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Dispositivi Bluetooth nelle vicinanze");
         builder.setAdapter(devicesAdapter, (dialog, which) -> {
-            if (listener != null)
-                listener.onClick(dialog, which);
+            if (onClickListener != null)
+                onClickListener.onClick(dialog, which);
         });
 
         return builder.create();
+    }
+
+    @Override
+    public void onCancel(@NonNull DialogInterface dialog) {
+        super.onCancel(dialog);
+        if (onCancelListener != null) onCancelListener.onCancel(dialog);
+    }
+
+    @Override
+    public void onDismiss(@NonNull DialogInterface dialog) {
+        super.onDismiss(dialog);
     }
 
     @Override
