@@ -144,7 +144,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
     private BitmapDescriptor creaIconaPosizione() {
         Bitmap icona = BitmapFactory.decodeResource(getResources(), R.drawable.ic_user_location);
-        Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth()*0.45), (int) (icona.getHeight()*0.45), false);
+        Bitmap resisezIcon = Bitmap.createScaledBitmap(icona, (int) (icona.getWidth()*0.40), (int) (icona.getHeight()*0.40), false);
         return BitmapDescriptorFactory.fromBitmap(resisezIcon);
     }
 

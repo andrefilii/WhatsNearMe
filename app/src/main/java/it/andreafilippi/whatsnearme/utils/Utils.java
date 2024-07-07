@@ -51,7 +51,7 @@ public class Utils {
             Canvas canvas = new Canvas(bitmap);
             vectorDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
             vectorDrawable.draw(canvas);
-            Bitmap resisedIcon = Bitmap.createScaledBitmap(bitmap, (int) (bitmap.getWidth() * 0.30), (int) (bitmap.getHeight() * 0.30), false);
+            Bitmap resisedIcon = Bitmap.createScaledBitmap(bitmap, (int) (bitmap.getWidth() * 0.27), (int) (bitmap.getHeight() * 0.27), false);
             return BitmapDescriptorFactory.fromBitmap(resisedIcon);
         } else {
             return BitmapDescriptorFactory.defaultMarker();
