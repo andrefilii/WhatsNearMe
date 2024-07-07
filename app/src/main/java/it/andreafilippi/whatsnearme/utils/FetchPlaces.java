@@ -28,7 +28,7 @@ import it.andreafilippi.whatsnearme.params.PlacesTaskParam;
  */
 @Deprecated
 public class FetchPlaces extends AsyncTask<Void, MyPlace, List<Marker>> {
-    /* DA RIMUOVERE, PER TEST */
+    /* PER TEST */
     private static final MyPlace[] testPlaces = {
             new MyPlace().setId("MCDL0000000000").setName("Museo Città di Livorno").setLat(43.5551451).setLng(10.3071166),
             new MyPlace().setId("MFVA0000000000").setName("Museo Fortezza Vecchia").setLat(43.5527328).setLng(10.3021199),
@@ -73,7 +73,7 @@ public class FetchPlaces extends AsyncTask<Void, MyPlace, List<Marker>> {
         else
             markers.clear();
 
-        boolean x = false; // TODO rimuovere, solo per DEBUG
+        boolean x = true; // DEBUG, mettere a false per lista statica
         if (x) {
             try {
                 String jsonData = DownloadUrl.performRequest(createRequest());
