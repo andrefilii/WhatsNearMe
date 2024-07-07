@@ -21,6 +21,11 @@ import java.util.List;
 import it.andreafilippi.whatsnearme.entities.MyPlace;
 import it.andreafilippi.whatsnearme.params.PlacesTaskParam;
 
+/**
+ * Questa classe è stata deprecata in favore della libreria di Google Places.
+ * Utilizzare {@link com.google.android.libraries.places.api.model.Place} e
+ * {@link com.google.android.libraries.places.api.net.PlacesClient} al suo posto
+ */
 @Deprecated
 public class FetchPlaces extends AsyncTask<Void, MyPlace, List<Marker>> {
     /* DA RIMUOVERE, PER TEST */

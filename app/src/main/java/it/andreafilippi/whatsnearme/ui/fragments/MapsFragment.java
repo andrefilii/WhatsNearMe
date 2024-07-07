@@ -23,6 +23,7 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -300,14 +301,26 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     }
 
     private void startLocationUpdated() {
-        LocationRequest locationRequest = LocationRequest.create()
-                .setInterval(10000)
-                .setFastestInterval(5000)
-                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        LocationRequest locationRequest = new LocationRequest.Builder(
+                Priority.PRIORITY_BALANCED_POWER_ACCURACY, 10000)
+                .setMinUpdateIntervalMillis(5000)
+                .build();
 
         if (!checkLocationPermission()) return;
 
-        flpc.requestLocationUpdates(locationRequest, locationUpdateCallback, null);
+        // inizio con l'ultima posizione in cache, poi ottengo quella esatta
+        flpc.getLastLocation()
+                .addOnSuccessListener(location -> {
+                    if (location != null) {
+                        updateUserLocationOnMap(location);
+                    }
+                    flpc.requestLocationUpdates(locationRequest, locationUpdateCallback, null);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("MAP", e.toString());
+                    flpc.requestLocationUpdates(locationRequest, locationUpdateCallback, null);
+                });
+
     }
 
     private void updateUserLocationOnMap(Location location) {
@@ -384,7 +397,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         // definisco il raggio di ricerca
         CircularBounds circle = CircularBounds.newInstance(currentLocationMarker.getPosition(), getSearchRadius());
         // lista di categorie da includere nella ricerca
-        List<String> includedTypes = List.of(category.getDescription());
+        List<String> includedTypes = PlacesUtils.getPlaceTypesByCategory(category);
 
         // creo la richiesta
         SearchNearbyRequest searchNearbyRequest =
