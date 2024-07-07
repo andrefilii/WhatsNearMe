@@ -16,6 +16,7 @@
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/bt_button"
+        style="@style/FloatingButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@id/navigation_bar"
@@ -23,14 +24,12 @@
         android:src="@drawable/ic_bt" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
+        style="@style/BottomNavigationView"
         android:id="@+id/navigation_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         android:layout_gravity="center"
-        android:background="@color/design_default_color_primary"
-        app:itemTextColor="@color/white"
-        app:itemIconTint="@color/white"
         app:menu="@menu/bottom_navigation_menu" />
 </RelativeLayout>

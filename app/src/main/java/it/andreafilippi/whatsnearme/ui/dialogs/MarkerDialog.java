@@ -139,7 +139,8 @@ public class MarkerDialog extends DialogFragment {
                     }
                 });
 
-        cameraLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+        cameraLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == CameraActivity.RESULT_OK) {
                         Intent data = result.getData();
@@ -254,6 +255,7 @@ public class MarkerDialog extends DialogFragment {
                                     Utils.makeToastShort(requireContext(), "Luogo rimosso dal diario");
                                 });
                             } else {
+                                isLuogoGiaVisitato.set(VISITATO_YES);
                                 requireActivity().runOnUiThread(() -> Utils.makeToastShort(requireContext(), "Errore durante la rimozione"));
                             }
                         }).start();

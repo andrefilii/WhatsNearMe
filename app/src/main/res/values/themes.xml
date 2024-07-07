@@ -2,10 +2,20 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.WhatsNearMe" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="colorPrimary">@color/primary_color_light</item>
+        <item name="colorOnPrimary">@color/white</item>
     </style>
 
     <style name="Theme.WhatsNearMe" parent="Base.Theme.WhatsNearMe" />
+
+    <style name="FloatingButton" parent="Widget.Design.FloatingActionButton" >
+        <item name="tint">@color/black</item>
+        <item name="backgroundTint">@color/primary_color_tint_light</item>
+    </style>
+
+    <style name="BottomNavigationView" parent="Widget.MaterialComponents.BottomNavigationView.Colored">
+        <item name="backgroundTint">@color/primary_color_light</item>
+    </style>
 
     <style name="MapButtonStyle">
         <item name="android:layout_width">wrap_content</item>

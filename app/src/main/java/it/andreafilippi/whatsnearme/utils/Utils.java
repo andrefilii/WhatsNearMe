@@ -1,6 +1,7 @@
 package it.andreafilippi.whatsnearme.utils;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -57,6 +58,11 @@ public class Utils {
         } else {
             return BitmapDescriptorFactory.defaultMarker();
         }
+    }
+
+    public static boolean isNightMode(Context context) {
+        int nightModeFlags = context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        return nightModeFlags == Configuration.UI_MODE_NIGHT_YES;
     }
 
 }

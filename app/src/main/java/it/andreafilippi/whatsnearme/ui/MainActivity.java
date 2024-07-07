@@ -93,7 +93,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-        discoverableBtLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+        discoverableBtLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_CANCELED) {
                         // L'utente ha rifiutato la visibilità
@@ -162,6 +163,8 @@ public class MainActivity extends AppCompatActivity {
                     .show(mapsFragment)
                     .commit();
             currentFragment = mapsFragment;
+
+            binding.navigationBar.setSelectedItemId(R.id.navigation_map);
         } else {
             // non ho i permessi, mostro direttamente il diario
             fragmentManager.beginTransaction()
@@ -181,20 +184,22 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (mapsFragment != null)
-            getSupportFragmentManager().putFragment(outState, MAP_FRAG, mapsFragment);
-        if (diarioFragment != null)
-            getSupportFragmentManager().putFragment(outState, DIARY_FRAG, diarioFragment);
-        if (settingsFragment != null)
-            getSupportFragmentManager().putFragment(outState, SETTINGS_FRAG, settingsFragment);
+        Fragment mapsFrag = getSupportFragmentManager().findFragmentByTag(MAP_FRAG);
+        Fragment diarioFrag = getSupportFragmentManager().findFragmentByTag(DIARY_FRAG);
+        Fragment settingsFrag = getSupportFragmentManager().findFragmentByTag(SETTINGS_FRAG);
+        if (mapsFrag != null && diarioFrag != null && settingsFrag != null) {
+            getSupportFragmentManager().putFragment(outState, MAP_FRAG, mapsFrag);
+            getSupportFragmentManager().putFragment(outState, DIARY_FRAG, diarioFrag);
+            getSupportFragmentManager().putFragment(outState, SETTINGS_FRAG, settingsFrag);
 
-        int curFrag = -1;
-        if (currentFragment != null) {
-            if (currentFragment instanceof MapsFragment) curFrag = 0;
-            else if (currentFragment instanceof DiarioFragment) curFrag = 1;
-            else curFrag = 2;
+            int curFrag = 0;
+            if (currentFragment != null) {
+                if (currentFragment instanceof MapsFragment) curFrag = 0;
+                else if (currentFragment instanceof DiarioFragment) curFrag = 1;
+                else curFrag = 2;
+            }
+            outState.putInt(CUR_FRAG, curFrag);
         }
-        outState.putInt(CUR_FRAG, curFrag);
     }
 
     private boolean navigationListener(MenuItem menuItem) {

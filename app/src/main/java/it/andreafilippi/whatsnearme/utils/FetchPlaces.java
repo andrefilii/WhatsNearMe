@@ -73,7 +73,7 @@ public class FetchPlaces extends AsyncTask<Void, Place, List<Marker>> {
         else
             markers.clear();
 
-        boolean x = true; // TODO rimuovere, solo per DEBUG
+        boolean x = false; // TODO rimuovere, solo per DEBUG
         if (x) {
             try {
                 String jsonData = DownloadUrl.performRequest(createRequest());

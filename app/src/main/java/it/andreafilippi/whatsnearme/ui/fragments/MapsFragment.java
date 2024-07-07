@@ -1,5 +1,6 @@
 package it.andreafilippi.whatsnearme.ui.fragments;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -137,6 +138,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // ho dei dati salvati (i marker), li ripristino
         if (savedInstanceState != null) {
             this.savedMarkerData = savedInstanceState.getParcelableArrayList(ARG_MARKERS, MarkerData.class);
             this.curCategory = Place.Category.getCategoryByString(savedInstanceState.getString(ARG_CATEGORY));
@@ -212,7 +214,11 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     public void onMapReady(@NonNull GoogleMap googleMap) {
         myMap = googleMap;
 
-        myMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(requireContext(), R.raw.map_style));
+        // cambio il tema della mappa in base a quello di sistema
+        if (Utils.isNightMode(requireContext()))
+            myMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(requireContext(), R.raw.map_style_dark));
+        else
+            myMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(requireContext(), R.raw.map_style_light));
 
         myMap.setOnMarkerClickListener(this::onMarkerClick);
 
