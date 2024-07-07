@@ -18,14 +18,19 @@
         android:ellipsize="none"
         android:maxLines="3"/>
 
-    <com.google.android.material.chip.ChipGroup
-        android:id="@+id/chipGroup"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp"
-        app:chipSpacing="2dp">
-    </com.google.android.material.chip.ChipGroup>
+        android:layout_height="0dp"
+        android:layout_weight="1">
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            app:chipSpacing="2dp">
+        </com.google.android.material.chip.ChipGroup>
+    </ScrollView>
 
     <LinearLayout
         android:layout_width="match_parent"

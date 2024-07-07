@@ -3,13 +3,13 @@ package it.andreafilippi.whatsnearme.params;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 
-import it.andreafilippi.whatsnearme.entities.Place;
+import it.andreafilippi.whatsnearme.utils.PlacesUtils;
 
 public class PlacesTaskParam {
     GoogleMap map;
     Integer radius;
     LatLng center;
-    Place.Category category;
+    PlacesUtils.Category category;
     String apiKey;
 
     public GoogleMap getMap() {
@@ -39,11 +39,11 @@ public class PlacesTaskParam {
         return this;
     }
 
-    public Place.Category getCategory() {
+    public PlacesUtils.Category getCategory() {
         return category;
     }
 
-    public PlacesTaskParam setCategory(Place.Category category) {
+    public PlacesTaskParam setCategory(PlacesUtils.Category category) {
         this.category = category;
         return this;
     }

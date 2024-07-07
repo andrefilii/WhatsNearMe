@@ -16,12 +16,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import java.io.Serializable;
-
-import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.DialogDettaglioDiarioBinding;
 import it.andreafilippi.whatsnearme.databinding.FragmentDiarioBinding;
-import it.andreafilippi.whatsnearme.entities.Place;
+import it.andreafilippi.whatsnearme.entities.MyPlace;
 import it.andreafilippi.whatsnearme.utils.DatabaseHelper;
 import it.andreafilippi.whatsnearme.utils.LuoghiAdapter;
 import it.andreafilippi.whatsnearme.utils.Utils;
@@ -112,7 +109,7 @@ public class DiarioFragment extends Fragment {
                         .setTitle(nome)
                         .setView(dialogBinding.getRoot())
                         .setPositiveButton("Apri su Maps", (dialog, which) -> {
-                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getPlaceLocationUri(new Place(nome, lat, lng))));
+                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getPlaceLocationUri(new MyPlace(nome, lat, lng))));
                             intent.setPackage(null);
                             startActivity(intent);
                         })

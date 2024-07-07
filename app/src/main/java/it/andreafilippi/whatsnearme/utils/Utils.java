@@ -3,19 +3,17 @@ package it.andreafilippi.whatsnearme.utils;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.widget.Toast;
 
 import androidx.appcompat.content.res.AppCompatResources;
-import androidx.core.graphics.drawable.DrawableCompat;
 
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 
 import it.andreafilippi.whatsnearme.R;
-import it.andreafilippi.whatsnearme.entities.Place;
+import it.andreafilippi.whatsnearme.entities.MyPlace;
 
 public class Utils {
 
@@ -27,11 +25,11 @@ public class Utils {
         Toast.makeText(context, msg, Toast.LENGTH_LONG).show();
     }
 
-    public static String getPlaceLocationUri(Place place) {
+    public static String getPlaceLocationUri(MyPlace place) {
         return "https://maps.google.com/maps?q=" + place.getLat() + "," + place.getLng() + "+(" + place.getName().replace(" ", "+") + ")";
     }
 
-    public static BitmapDescriptor creaIconaMarker(Context context, Place.Category category) {
+    public static BitmapDescriptor creaIconaMarker(Context context, PlacesUtils.Category category) {
         int resId = -1;
         switch (category) {
             case RESTAURANT:
@@ -53,7 +51,7 @@ public class Utils {
             Canvas canvas = new Canvas(bitmap);
             vectorDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
             vectorDrawable.draw(canvas);
-            Bitmap resisedIcon = Bitmap.createScaledBitmap(bitmap, (int) (bitmap.getWidth() * 0.30), (int) (bitmap.getHeight() * 0.30), false);
+            Bitmap resisedIcon = Bitmap.createScaledBitmap(bitmap, (int) (bitmap.getWidth() * 0.27), (int) (bitmap.getHeight() * 0.27), false);
             return BitmapDescriptorFactory.fromBitmap(resisedIcon);
         } else {
             return BitmapDescriptorFactory.defaultMarker();

@@ -39,12 +39,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.DialogMarkerBinding;
-import it.andreafilippi.whatsnearme.entities.Place;
+import it.andreafilippi.whatsnearme.entities.MyPlace;
 import it.andreafilippi.whatsnearme.ui.activities.CameraActivity;
 import it.andreafilippi.whatsnearme.utils.DatabaseHelper;
 import it.andreafilippi.whatsnearme.utils.Utils;
@@ -61,7 +60,7 @@ public class MarkerDialog extends DialogFragment {
     private ActivityResultLauncher<String[]> bluetoothScanPermissionLauncher;
     private ActivityResultLauncher<Intent> cameraLauncher;
 
-    private Place place;
+    private MyPlace place;
     private PopupMenu shareMenu;
     private BluetoothAdapter bluetoothAdapter;
     private ArrayAdapter<String> devicesArrayAdapter;
@@ -106,9 +105,9 @@ public class MarkerDialog extends DialogFragment {
     };
 
 
-    public static MarkerDialog newInstance(Place place) {
+    public static MarkerDialog newInstance(MyPlace place) {
         Bundle args = new Bundle();
-        args.putSerializable(ARG_PLACE, place);
+        args.putParcelable(ARG_PLACE, place);
         MarkerDialog md = new MarkerDialog();
         md.setArguments(args);
         return md;
@@ -125,7 +124,7 @@ public class MarkerDialog extends DialogFragment {
         super.onCreateView(inflater, container, savedInstanceState);
 
         if (getArguments() != null)
-            this.place = getArguments().getSerializable(ARG_PLACE, Place.class);
+            this.place = getArguments().getParcelable(ARG_PLACE, MyPlace.class);
 
         bluetoothScanPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestMultiplePermissions(),

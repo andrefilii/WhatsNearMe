@@ -5,24 +5,40 @@ import android.os.Parcelable;
 
 import com.google.android.gms.maps.model.LatLng;
 
-import it.andreafilippi.whatsnearme.entities.Place;
-import it.andreafilippi.whatsnearme.ui.dialogs.MarkerDialog;
+import it.andreafilippi.whatsnearme.entities.MyPlace;
 
 public class MarkerData implements Parcelable {
-    private LatLng position;
+    private Double lat;
+    private Double lng;
     private String title;
-    private Place place;
+    private MyPlace place;
 
-    public MarkerData(LatLng position, String title, Place place) {
-        this.position = position;
+
+    public MarkerData(Double lat, Double lng, String title, MyPlace place) {
+        this.lat = lat;
+        this.lng = lng;
         this.title = title;
         this.place = place;
     }
 
     protected MarkerData(Parcel in) {
-        position = in.readParcelable(LatLng.class.getClassLoader(), LatLng.class);
+        lat = in.readDouble();
+        lng = in.readDouble();
         title = in.readString();
-        place = in.readSerializable(Place.class.getClassLoader(), Place.class);
+        place = in.readParcelable(MyPlace.class.getClassLoader(), MyPlace.class);
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeDouble(lat);
+        dest.writeDouble(lng);
+        dest.writeString(title);
+        dest.writeParcelable(place, flags);
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
     }
 
     public static final Creator<MarkerData> CREATOR = new Creator<MarkerData>() {
@@ -37,42 +53,37 @@ public class MarkerData implements Parcelable {
         }
     };
 
-    @Override
-    public int describeContents() {
-        return 0;
+
+    public Double getLat() {
+        return lat;
     }
 
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeParcelable(position, flags);
-        dest.writeString(title);
-        dest.writeSerializable(place);
+    public void setLat(Double lat) {
+        this.lat = lat;
     }
 
-    public LatLng getPosition() {
-        return position;
+    public Double getLng() {
+        return lng;
     }
 
-    public MarkerData setPosition(LatLng position) {
-        this.position = position;
-        return this;
+    public void setLng(Double lng) {
+        this.lng = lng;
     }
 
     public String getTitle() {
         return title;
     }
 
-    public MarkerData setTitle(String title) {
+    public void setTitle(String title) {
         this.title = title;
-        return this;
     }
 
-    public Place getPlace() {
+    public MyPlace getPlace() {
         return place;
     }
 
-    public MarkerData setPlace(Place place) {
+    public void setPlace(MyPlace place) {
         this.place = place;
-        return this;
     }
+
 }
