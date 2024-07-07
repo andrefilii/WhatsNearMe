@@ -1,18 +1,16 @@
 package it.andreafilippi.whatsnearme.ui.fragments;
 
-import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.Parcelable;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -31,18 +29,19 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.CircularBounds;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.android.libraries.places.api.net.SearchNearbyRequest;
 
-import java.io.Serializable;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -50,11 +49,10 @@ import java.util.stream.Collectors;
 import it.andreafilippi.whatsnearme.BuildConfig;
 import it.andreafilippi.whatsnearme.R;
 import it.andreafilippi.whatsnearme.databinding.FragmentMapsBinding;
-import it.andreafilippi.whatsnearme.entities.Place;
+import it.andreafilippi.whatsnearme.entities.MyPlace;
 import it.andreafilippi.whatsnearme.params.MarkerData;
-import it.andreafilippi.whatsnearme.params.PlacesTaskParam;
 import it.andreafilippi.whatsnearme.ui.dialogs.MarkerDialog;
-import it.andreafilippi.whatsnearme.utils.FetchPlaces;
+import it.andreafilippi.whatsnearme.utils.PlacesUtils;
 import it.andreafilippi.whatsnearme.utils.Utils;
 
 public class MapsFragment extends Fragment implements OnMapReadyCallback {
@@ -73,17 +71,17 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     private LocationCallback locationUpdateCallback;
     private Marker currentLocationMarker;
 
-    private CameraPosition cameraPosition;
-
     private boolean isFirstLocationUpdate = true;
 
     private Circle searchRadiusCircle;
 
-    private Place.Category curCategory;
+    private PlacesUtils.Category curCategory;
     private List<Marker> mapMarkers;
 
     private BitmapDescriptor userLocationIcon;
     private ArrayList<MarkerData> savedMarkerData;
+
+    private PlacesClient placesClient;
 
 
     public static MapsFragment newInstance() {
@@ -121,9 +119,24 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             }
         };
 
-        binding.btnRestaurants.setOnClickListener(this::onBtnRestaurantsClick);
-        binding.btnMuseums.setOnClickListener(this::onBtnMuseumsClick);
-        binding.btnATM.setOnClickListener(this::onBtnATMClick);
+        String apiKey = BuildConfig.MAPS_API_KEY;
+
+        if (TextUtils.isEmpty(apiKey) || apiKey.equals("DEAFULT_API_KEY")) {
+            Log.e("PLACE API", "Nessuna API key specificata");
+            binding.btnRestaurants.setEnabled(false);
+            binding.btnMuseums.setEnabled(false);
+            binding.btnATM.setEnabled(false);
+            Utils.makeToastShort(requireContext(), "Errore caricamento places key");
+        } else {
+            // inizializzo l SDK
+            Places.initializeWithNewPlacesApiEnabled(requireActivity().getApplicationContext(), apiKey);
+            // creazione nuovo client places
+            this.placesClient = Places.createClient(requireContext());
+
+            binding.btnRestaurants.setOnClickListener(this::onBtnRestaurantsClick);
+            binding.btnMuseums.setOnClickListener(this::onBtnMuseumsClick);
+            binding.btnATM.setOnClickListener(this::onBtnATMClick);
+        }
 
         return binding.getRoot();
     }
@@ -141,7 +154,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         // ho dei dati salvati (i marker), li ripristino
         if (savedInstanceState != null) {
             this.savedMarkerData = savedInstanceState.getParcelableArrayList(ARG_MARKERS, MarkerData.class);
-            this.curCategory = Place.Category.getCategoryByString(savedInstanceState.getString(ARG_CATEGORY));
+            this.curCategory = PlacesUtils.Category.getCategoryByString(savedInstanceState.getString(ARG_CATEGORY));
         }
 
         SupportMapFragment mapFragment =
@@ -164,11 +177,11 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (mapMarkers != null) {
+        if (mapMarkers != null && !mapMarkers.isEmpty()) {
             outState.putParcelableArrayList(ARG_MARKERS,
                     new ArrayList<>(
                             mapMarkers.stream()
-                                    .map(m -> new MarkerData(m.getPosition(), m.getTitle(), (Place) m.getTag()))
+                                    .map(m -> new MarkerData(m.getPosition().latitude, m.getPosition().longitude, m.getTitle(), (MyPlace) m.getTag()))
                                     .collect(Collectors.toList())
                     ));
             outState.putString(ARG_CATEGORY, curCategory.getDescription());
@@ -240,7 +253,12 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             BitmapDescriptor icon = Utils.creaIconaMarker(requireContext(), this.curCategory);
             ArrayList<Marker> mapMarkersNew = new ArrayList<>(mapMarkers.size());
             for (Marker marker : mapMarkers) {
-                Marker m = myMap.addMarker(new MarkerOptions().position(marker.getPosition()).title(marker.getTitle()).icon(icon));
+                Marker m = myMap.addMarker(
+                        new MarkerOptions()
+                                .position(marker.getPosition())
+                                .title(marker.getTitle())
+                                .icon(icon)
+                        );
                 if (m != null) {
                     m.setTag(marker.getTag());
                     mapMarkersNew.add(m);
@@ -252,7 +270,12 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             BitmapDescriptor icon = Utils.creaIconaMarker(requireContext(), this.curCategory);
             this.mapMarkers = new ArrayList<>(savedMarkerData.size());
             for (MarkerData marker : savedMarkerData) {
-                Marker m = myMap.addMarker(new MarkerOptions().position(marker.getPosition()).title(marker.getTitle()).icon(icon));
+                Marker m = myMap.addMarker(
+                        new MarkerOptions()
+                                .position(new LatLng(marker.getLat(), marker.getLng()))
+                                .title(marker.getTitle())
+                                .icon(icon)
+                        );
                 if (m != null) {
                     m.setTag(marker.getPlace());
                     this.mapMarkers.add(m);
@@ -264,7 +287,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     private boolean onMarkerClick(Marker marker) {
         if (marker.getTag() != null) {
             // se ha il campo tag, significa che è un luogo di interesse e non la posizione
-            Place place = (Place) marker.getTag();
+            MyPlace place = (MyPlace) marker.getTag();
             Log.d("MARKER CLICK", marker.toString());
 
             MarkerDialog.newInstance(place).show(requireActivity().getSupportFragmentManager(), "markerDialog");
@@ -310,8 +333,6 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             currentLocationMarker.setPosition(position);
         }
 
-
-
         Log.d("MAP", "Marker aggiornato: " + currentLocationMarker.getPosition());
 
         if (isFirstLocationUpdate) {
@@ -329,7 +350,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         if (currentLocationMarker == null) {
             Utils.makeToastShort(requireContext(), "Per favore attendi il caricamento della posizione");
         } else {
-            fetchPlaces(Place.Category.ATM);
+            fetchPlaces(PlacesUtils.Category.ATM);
         }
     }
 
@@ -337,7 +358,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         if (currentLocationMarker == null) {
             Utils.makeToastShort(requireContext(), "Per favore attendi il caricamento della posizione");
         } else {
-            fetchPlaces(Place.Category.MUSEUM);
+            fetchPlaces(PlacesUtils.Category.MUSEUM);
         }
     }
 
@@ -345,28 +366,54 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         if (currentLocationMarker == null) {
             Utils.makeToastShort(requireContext(), "Per favore attendi il caricamento della posizione");
         } else {
-            fetchPlaces(Place.Category.RESTAURANT);
+            fetchPlaces(PlacesUtils.Category.RESTAURANT);
         }
     }
 
     /* --- UTILS --- */
 
-    private void fetchPlaces(Place.Category category) {
-        PlacesTaskParam params = new PlacesTaskParam()
-                .setMap(myMap)
-                .setRadius(getSearchRadius())
-                .setCenter(currentLocationMarker.getPosition())
-                .setCategory(category)
-                .setApiKey(BuildConfig.MAPS_API_KEY);
+    private void fetchPlaces(PlacesUtils.Category category) {
+        // rimuovo i marker presenti, se ci sono
+        if (mapMarkers != null) {
+            mapMarkers.forEach(Marker::remove);
+            mapMarkers.clear();
+        } else {
+            mapMarkers = new ArrayList<>();
+        }
 
-        new FetchPlaces(requireContext(), params, mapMarkers, (markers) -> onFetchPlacesCompleted(markers, category)).execute();
+        // definisco il raggio di ricerca
+        CircularBounds circle = CircularBounds.newInstance(currentLocationMarker.getPosition(), getSearchRadius());
+        // lista di categorie da includere nella ricerca
+        List<String> includedTypes = List.of(category.getDescription());
+
+        // creo la richiesta
+        SearchNearbyRequest searchNearbyRequest =
+                SearchNearbyRequest.builder(circle, PlacesUtils.placeFields)
+                        .setIncludedTypes(includedTypes)
+                        .build();
+
+        // effettuo la ricerca
+        placesClient.searchNearby(searchNearbyRequest)
+                .addOnSuccessListener(response -> onFetchPlacesCompleted(category, response.getPlaces()))
+                .addOnFailureListener(e -> Log.e("PLACES API", e.toString()));
     }
 
-    private void onFetchPlacesCompleted(List<Marker> markers, Place.Category category) {
-        // mi salvo i nuovi marker: questo serve per poi passarli di nuovo al Task in caso di una
-        //  nuova ricerca
+    private void onFetchPlacesCompleted(PlacesUtils.Category category, List<Place> places) {
         this.curCategory = category;
-        this.mapMarkers = markers;
+
+        BitmapDescriptor icon = Utils.creaIconaMarker(requireContext(), category);
+        for (Place place : places) {
+            Marker marker = myMap.addMarker(new MarkerOptions()
+                    .title(place.getName())
+                    .icon(icon)
+                    .position(place.getLatLng()));
+            if (marker != null) {
+                // informazioni poi da usare nel dialog
+                MyPlace myPlace = MyPlace.fromGooglePlace(place);
+                marker.setTag(myPlace);
+                mapMarkers.add(marker);
+            }
+        }
     }
 
     private boolean checkLocationPermission() {

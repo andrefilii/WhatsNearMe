@@ -6,7 +6,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import it.andreafilippi.whatsnearme.entities.Place;
+import it.andreafilippi.whatsnearme.entities.MyPlace;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "whatsnearme.db";
@@ -40,7 +40,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     }
 
-    public long addLuogo(Place luogo, String fotoPath) {
+    public long addLuogo(MyPlace luogo, String fotoPath) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_ID, luogo.getId());
