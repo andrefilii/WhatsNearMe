@@ -1,4 +1,4 @@
-package it.andreafilippi.whatsnearme.ui;
+package it.andreafilippi.whatsnearme.ui.activities;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
