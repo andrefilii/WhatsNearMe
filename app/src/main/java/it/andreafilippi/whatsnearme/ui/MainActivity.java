@@ -120,9 +120,9 @@ public class MainActivity extends AppCompatActivity {
         fragmentManager = getSupportFragmentManager();
 
         if (savedInstanceState != null) {
-            mapsFragment = (MapsFragment) getSupportFragmentManager().getFragment(savedInstanceState, MAP_FRAG);
-            diarioFragment = (DiarioFragment) getSupportFragmentManager().getFragment(savedInstanceState, DIARY_FRAG);
-            settingsFragment = (SettingsFragment) getSupportFragmentManager().getFragment(savedInstanceState, SETTINGS_FRAG);
+            mapsFragment = (MapsFragment) fragmentManager.getFragment(savedInstanceState, MAP_FRAG);
+            diarioFragment = (DiarioFragment) fragmentManager.getFragment(savedInstanceState, DIARY_FRAG);
+            settingsFragment = (SettingsFragment) fragmentManager.getFragment(savedInstanceState, SETTINGS_FRAG);
             switch (savedInstanceState.getInt(CUR_FRAG)) {
                 case 0:
                     currentFragment = mapsFragment;
@@ -138,10 +138,6 @@ public class MainActivity extends AppCompatActivity {
                     break;
             }
         } else {
-            mapsFragment = MapsFragment.newInstance();
-            diarioFragment = DiarioFragment.newInstance();
-            settingsFragment = SettingsFragment.newInstance();
-
             // verifico permessi per la posizione
             if (checkLocationPermission()) {
                 firstLoad(true);
@@ -153,6 +149,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void firstLoad(boolean withPositionPermission) {
+        mapsFragment = MapsFragment.newInstance();
+        diarioFragment = DiarioFragment.newInstance();
+        settingsFragment = SettingsFragment.newInstance();
         if (withPositionPermission) {
             fragmentManager.beginTransaction()
                     .add(R.id.fragment_container, mapsFragment, MAP_FRAG)
@@ -184,13 +183,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        Fragment mapsFrag = getSupportFragmentManager().findFragmentByTag(MAP_FRAG);
-        Fragment diarioFrag = getSupportFragmentManager().findFragmentByTag(DIARY_FRAG);
-        Fragment settingsFrag = getSupportFragmentManager().findFragmentByTag(SETTINGS_FRAG);
+        Fragment mapsFrag = fragmentManager.findFragmentByTag(MAP_FRAG);
+        Fragment diarioFrag = fragmentManager.findFragmentByTag(DIARY_FRAG);
+        Fragment settingsFrag = fragmentManager.findFragmentByTag(SETTINGS_FRAG);
         if (mapsFrag != null && diarioFrag != null && settingsFrag != null) {
-            getSupportFragmentManager().putFragment(outState, MAP_FRAG, mapsFrag);
-            getSupportFragmentManager().putFragment(outState, DIARY_FRAG, diarioFrag);
-            getSupportFragmentManager().putFragment(outState, SETTINGS_FRAG, settingsFrag);
+            fragmentManager.putFragment(outState, MAP_FRAG, mapsFrag);
+            fragmentManager.putFragment(outState, DIARY_FRAG, diarioFrag);
+            fragmentManager.putFragment(outState, SETTINGS_FRAG, settingsFrag);
 
             int curFrag = 0;
             if (currentFragment != null) {
