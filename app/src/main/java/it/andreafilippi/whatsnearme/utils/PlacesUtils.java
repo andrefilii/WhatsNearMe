@@ -22,7 +22,7 @@ public class PlacesUtils {
         }
     }
 
-    public static enum Category {
+    public enum Category {
         RESTAURANT("restaurant"),
         MUSEUM("museum"),
         ATM("atm");

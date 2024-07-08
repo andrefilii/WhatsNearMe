@@ -109,7 +109,7 @@ public class DiarioFragment extends Fragment {
                         .setTitle(nome)
                         .setView(dialogBinding.getRoot())
                         .setPositiveButton("Apri su Maps", (dialog, which) -> {
-                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getPlaceLocationUri(new MyPlace(nome, lat, lng))));
+                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getPlaceLocationUrl(new MyPlace(nome, lat, lng))));
                             intent.setPackage(null);
                             startActivity(intent);
                         })

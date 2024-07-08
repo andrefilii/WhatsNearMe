@@ -1,6 +1,7 @@
 package it.andreafilippi.whatsnearme.ui.dialogs;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -63,10 +64,9 @@ public class MarkerDialog extends DialogFragment {
     private MyPlace place;
     private PopupMenu shareMenu;
     private BluetoothAdapter bluetoothAdapter;
-    private ArrayAdapter<String> devicesArrayAdapter;
+    private BluetoothDeviceListDialog btDeviceDialog;
     private DatabaseHelper databaseHelper;
     private AtomicInteger isLuogoGiaVisitato;
-    private List<String> devicesMac = new ArrayList<>();
 
     private final BroadcastReceiver deviceFoundReceiver = new BroadcastReceiver() {
         @SuppressWarnings("MissingPermission")
@@ -79,9 +79,8 @@ public class MarkerDialog extends DialogFragment {
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC
                 Log.d("BT DISCOVER", deviceName + " " + deviceHardwareAddress);
-                if (deviceName != null && !devicesMac.contains(deviceHardwareAddress)) {
-                    devicesMac.add(deviceHardwareAddress);
-                    devicesArrayAdapter.add(deviceName + "\n" + deviceHardwareAddress);
+                if (btDeviceDialog != null && deviceName != null) {
+                    btDeviceDialog.addDevice(deviceName, deviceHardwareAddress);
                 }
             }
         }
@@ -155,14 +154,17 @@ public class MarkerDialog extends DialogFragment {
 
         binding.title.setText(place.getName());
 
+        // creo il menu per la condivisione
         shareMenu = new PopupMenu(requireContext(), binding.condividiBtn);
         shareMenu.getMenuInflater().inflate(R.menu.share_location_menu, shareMenu.getMenu());
         shareMenu.setOnMenuItemClickListener(this::onMenuItemClickListener);
 
+        // associazione listener ai pulsanti
         binding.indicazioniBtn.setOnClickListener(this::onIndicazioniBtnClick);
         binding.segnaVisitatoBtn.setOnClickListener(this::onSegnaVisitatoBtnClick);
         binding.condividiBtn.setOnClickListener(this::onCondividiBtnClick);
 
+        // setting del pulsante per il diario di viaggio
         databaseHelper = new DatabaseHelper(requireContext());
         isLuogoGiaVisitato = new AtomicInteger(VISITATO_IDK);
         new Thread(() -> {
@@ -181,7 +183,7 @@ public class MarkerDialog extends DialogFragment {
         }).start();
 
         if (place.getTags() != null) {
-            //creazione chips
+            //creazione chips con i tags del luogo
             ChipGroup chipGroup = binding.chipGroup;
             ViewGroup.LayoutParams layoutParams =
                     new ChipGroup.LayoutParams(ChipGroup.LayoutParams.WRAP_CONTENT, ChipGroup.LayoutParams.WRAP_CONTENT);
@@ -196,8 +198,10 @@ public class MarkerDialog extends DialogFragment {
             }
         }
 
+        // il dialog può essere chiuso cliccando all'esterno
         getDialog().setCanceledOnTouchOutside(true);
 
+        // setting per la condivisione bluetooth
         BluetoothManager bluetoothManager = requireActivity().getSystemService(BluetoothManager.class);
         bluetoothAdapter = bluetoothManager.getAdapter();
         if (bluetoothAdapter == null) {
@@ -237,9 +241,10 @@ public class MarkerDialog extends DialogFragment {
 
     private void onSegnaVisitatoBtnClick(View view) {
         if (isLuogoGiaVisitato.get() == VISITATO_IDK) {
+            // ancora in caricamento
             Utils.makeToastShort(requireContext(), "Attendere il caricamento dei dati");
-            return;
         } else if (isLuogoGiaVisitato.get() == VISITATO_YES) {
+            // è già visitato, mostro dialog per rimozione
             new AlertDialog.Builder(requireContext())
                     .setTitle("Conferma rimozione")
                     .setMessage("Sei sicuro di voler rimuovere il luogo dal diario di viaggio?")
@@ -265,20 +270,20 @@ public class MarkerDialog extends DialogFragment {
                     })
                     .create()
                     .show();
-            return;
+        } else {
+            // non è visitato, mostro dialog per aggiungere una foto
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Vuoi aggiungere una foto al luogo?")
+                    .setPositiveButton("Si", (dialog, which) -> {
+                        Intent intent = new Intent(requireActivity(), CameraActivity.class);
+                        cameraLauncher.launch(intent);
+                        dialog.dismiss();
+                    })
+                    .setNegativeButton("No", (dialog, which) -> {
+                        salvaLuogoNelDiario(null);
+                        dialog.dismiss();
+                    }).show();
         }
-
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Vuoi aggiungere una foto al luogo?")
-                .setPositiveButton("Si", (dialog, which) -> {
-                    Intent intent = new Intent(requireActivity(), CameraActivity.class);
-                    cameraLauncher.launch(intent);
-                    dialog.dismiss();
-                })
-                .setNegativeButton("No", (dialog, which) -> {
-                    salvaLuogoNelDiario(null);
-                    dialog.dismiss();
-                }).show();
     }
 
     private void salvaLuogoNelDiario(String pathFoto) {
@@ -298,7 +303,8 @@ public class MarkerDialog extends DialogFragment {
     }
 
     private void onIndicazioniBtnClick(View view) {
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getPlaceLocationUri(place)));
+        // apro il link di google maps, se è presente sul telefono apre direttamente l'app
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getPlaceLocationUrl(place)));
         intent.setPackage(null);
         startActivity(intent);
     }
@@ -321,6 +327,17 @@ public class MarkerDialog extends DialogFragment {
         return false;
     }
 
+    private void onShareMenuOtherClick() {
+        String uri = Utils.getPlaceLocationUrl(place);
+
+        Intent sharingIntent = new Intent(android.content.Intent.ACTION_SEND);
+        sharingIntent.setType("text/plain");
+        String ShareSub = "Ti ho condiviso questa posizione!";
+        sharingIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, ShareSub);
+        sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, uri);
+        startActivity(Intent.createChooser(sharingIntent, "Condividi con"));
+    }
+
     private void onShareMenuBluetoothClick() {
         if (!bluetoothAdapter.isEnabled()) {
             Utils.makeToastShort(requireContext(), "Bluetooth non attivo!");
@@ -328,6 +345,7 @@ public class MarkerDialog extends DialogFragment {
             startActivity(enableBtIntent);
             return;
         }
+
         // è abilitato, inizio a cercare dispositivi vicini
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED ||
                 ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
@@ -339,28 +357,23 @@ public class MarkerDialog extends DialogFragment {
 
     @SuppressWarnings("MissingPermission")
     private void startBtDiscovery() {
-        devicesMac.clear();
-        devicesArrayAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_single_choice);
-        BluetoothDeviceListDialog dialog = new BluetoothDeviceListDialog(devicesArrayAdapter, this::onBtListClick, this::onBtDeviceCancel);
-        dialog.show(getParentFragmentManager(), "bt_list_dialog");
+        btDeviceDialog = BluetoothDeviceListDialog.newInstance(this::onBtListClick, this::onBtDeviceCancel);
+        btDeviceDialog.show(getParentFragmentManager(), "bt_list_dialog");
         bluetoothAdapter.startDiscovery();
     }
 
+    @SuppressLint("MissingPermission")
     private void onBtDeviceCancel(DialogInterface dialog) {
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
-            bluetoothAdapter.cancelDiscovery();
-        }
+        bluetoothAdapter.cancelDiscovery();
     }
 
-    private void onBtListClick(DialogInterface dialog, int which) {
+    @SuppressLint("MissingPermission")
+    private void onBtListClick(DialogInterface dialog, int which, String deviceInfo) {
         // ho selezionato un dispositivo, disattivo la ricerca
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
-            bluetoothAdapter.cancelDiscovery();
-        }
+        bluetoothAdapter.cancelDiscovery();
 
-        // recupero l'indirizzo MAC (è scritto nella lista)
+        // recupero l'indirizzo MAC (è scritto nella entry)
         dialog.dismiss();
-        String deviceInfo = devicesArrayAdapter.getItem(which);
         String deviceMAC = deviceInfo.substring(deviceInfo.length() - 17);
 
         // provo a fare il pairing tra dispositivi
@@ -377,17 +390,6 @@ public class MarkerDialog extends DialogFragment {
         }
     }
 
-    private void onShareMenuOtherClick() {
-        String uri = Utils.getPlaceLocationUri(place);
-
-        Intent sharingIntent = new Intent(android.content.Intent.ACTION_SEND);
-        sharingIntent.setType("text/plain");
-        String ShareSub = "Ti ho condiviso questa posizione!";
-        sharingIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, ShareSub);
-        sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, uri);
-        startActivity(Intent.createChooser(sharingIntent, "Condividi con"));
-    }
-
     private void startBtConnection(BluetoothDevice device) {
         new Thread(() -> connectAndSendDataBluetooth(device)).start();
     }
@@ -400,7 +402,7 @@ public class MarkerDialog extends DialogFragment {
             // FINALMENTE, invio i dati
             bs.connect();
             OutputStream os = bs.getOutputStream();
-            os.write(Utils.getPlaceLocationUri(place).getBytes(StandardCharsets.UTF_8));
+            os.write(Utils.getPlaceLocationUrl(place).getBytes(StandardCharsets.UTF_8));
             os.flush();
 
             requireActivity().runOnUiThread(() -> {

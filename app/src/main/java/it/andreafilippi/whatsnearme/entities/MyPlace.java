@@ -113,27 +113,4 @@ public class MyPlace implements Parcelable {
         this.lng = lng;
         return this;
     }
-
-    public enum Category {
-        RESTAURANT("restaurant"),
-        MUSEUM("museum"),
-        ATM("atm");
-
-        private final String description;
-
-        Category(String description) {
-            this.description = description;
-        }
-
-        public static Category getCategoryByString(String description) {
-            for (Category c : Category.values()) {
-                if (c.description.equals(description)) return c;
-            }
-            return null;
-        }
-
-        public String getDescription() {
-            return this.description;
-        }
-    }
 }

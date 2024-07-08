@@ -25,7 +25,7 @@ public class Utils {
         Toast.makeText(context, msg, Toast.LENGTH_LONG).show();
     }
 
-    public static String getPlaceLocationUri(MyPlace place) {
+    public static String getPlaceLocationUrl(MyPlace place) {
         return "https://maps.google.com/maps?q=" + place.getLat() + "," + place.getLng() + "+(" + place.getName().replace(" ", "+") + ")";
     }
 

@@ -120,6 +120,7 @@ public class MainActivity extends AppCompatActivity {
         fragmentManager = getSupportFragmentManager();
 
         if (savedInstanceState != null) {
+            // riprendo i fragment salvati
             mapsFragment = (MapsFragment) fragmentManager.getFragment(savedInstanceState, MAP_FRAG);
             diarioFragment = (DiarioFragment) fragmentManager.getFragment(savedInstanceState, DIARY_FRAG);
             settingsFragment = (SettingsFragment) fragmentManager.getFragment(savedInstanceState, SETTINGS_FRAG);
@@ -138,6 +139,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
             }
         } else {
+            // prima volta che apro la activity
             // verifico permessi per la posizione
             if (checkLocationPermission()) {
                 firstLoad(true);
@@ -149,10 +151,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void firstLoad(boolean withPositionPermission) {
+        // creo i fragment
         mapsFragment = MapsFragment.newInstance();
         diarioFragment = DiarioFragment.newInstance();
         settingsFragment = SettingsFragment.newInstance();
         if (withPositionPermission) {
+            // se ho i permessi per la posizione, visualizzo subito la mappa
             fragmentManager.beginTransaction()
                     .add(R.id.fragment_container, mapsFragment, MAP_FRAG)
                     .add(R.id.fragment_container, diarioFragment, DIARY_FRAG)
@@ -183,10 +187,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
+        // recupero i fragment nel manager
         Fragment mapsFrag = fragmentManager.findFragmentByTag(MAP_FRAG);
         Fragment diarioFrag = fragmentManager.findFragmentByTag(DIARY_FRAG);
         Fragment settingsFrag = fragmentManager.findFragmentByTag(SETTINGS_FRAG);
         if (mapsFrag != null && diarioFrag != null && settingsFrag != null) {
+            // se i fragment sono presenti, li salvo nel bundle
             fragmentManager.putFragment(outState, MAP_FRAG, mapsFrag);
             fragmentManager.putFragment(outState, DIARY_FRAG, diarioFrag);
             fragmentManager.putFragment(outState, SETTINGS_FRAG, settingsFrag);
@@ -201,6 +207,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Recupera il fragment che voglio aprire e lo carica
+     * @param menuItem l'elemento del menu selezionato
+     */
     private boolean navigationListener(MenuItem menuItem) {
         Fragment selected = null;
 
@@ -218,6 +228,10 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    /**
+     * Mostra il fragment passato e lo savla in currentFragment
+     * @param fragment il fragment da mostrare
+     */
     private void loadFragment(Fragment fragment) {
         if (fragment != null && fragment != currentFragment) {
             FragmentTransaction transaction = fragmentManager.beginTransaction();
@@ -254,6 +268,7 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressWarnings("MissingPermission")
     private void ensureBtDiscoverable() {
+        // prima di iniziare a riceve i dati, controllo che il dispositivo sia discoverable
         if (btAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
             Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
             intent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);

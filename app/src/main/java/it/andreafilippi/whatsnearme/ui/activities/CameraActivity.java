@@ -47,7 +47,6 @@ public class CameraActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityCameraBinding.inflate(getLayoutInflater());
-//        EdgeToEdge.enable(this);
         setContentView(binding.getRoot());
 
         requestPermissionLauncher = registerForActivityResult(

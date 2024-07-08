@@ -120,16 +120,18 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             }
         };
 
+        // recupero la api key per google places (stessa di maps)
         String apiKey = BuildConfig.MAPS_API_KEY;
 
         if (TextUtils.isEmpty(apiKey) || apiKey.equals("DEAFULT_API_KEY")) {
+            // se non ho specificato una key, disattivo la ricerca
             Log.e("PLACE API", "Nessuna API key specificata");
             binding.btnRestaurants.setEnabled(false);
             binding.btnMuseums.setEnabled(false);
             binding.btnATM.setEnabled(false);
             Utils.makeToastShort(requireContext(), "Errore caricamento places key");
         } else {
-            // inizializzo l SDK
+            // inizializzo places con la key
             Places.initializeWithNewPlacesApiEnabled(requireActivity().getApplicationContext(), apiKey);
             // creazione nuovo client places
             this.placesClient = Places.createClient(requireContext());
@@ -152,8 +154,8 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // ho dei dati salvati (i marker), li ripristino
         if (savedInstanceState != null) {
+            // ho dei dati salvati (i marker), li ripristino
             this.savedMarkerData = savedInstanceState.getParcelableArrayList(ARG_MARKERS, MarkerData.class);
             this.curCategory = PlacesUtils.Category.getCategoryByString(savedInstanceState.getString(ARG_CATEGORY));
         }
@@ -179,6 +181,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         if (mapMarkers != null && !mapMarkers.isEmpty()) {
+            // mi salvo i marker sulla mappa per riposizionarli più tardi
             outState.putParcelableArrayList(ARG_MARKERS,
                     new ArrayList<>(
                             mapMarkers.stream()
@@ -251,6 +254,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         }
 
         if (this.mapMarkers != null) {
+            // ho dei markers salvati ma la mappa è stata ricreata, li rimetto sulla mappa
             BitmapDescriptor icon = Utils.creaIconaMarker(requireContext(), this.curCategory);
             ArrayList<Marker> mapMarkersNew = new ArrayList<>(mapMarkers.size());
             for (Marker marker : mapMarkers) {
@@ -268,6 +272,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             this.mapMarkers = mapMarkersNew;
         }
         else if (savedMarkerData != null) {
+            // mi ero salvato dei marker nel bundle, li rimetto sulla mappa
             BitmapDescriptor icon = Utils.creaIconaMarker(requireContext(), this.curCategory);
             this.mapMarkers = new ArrayList<>(savedMarkerData.size());
             for (MarkerData marker : savedMarkerData) {
@@ -291,6 +296,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
             MyPlace place = (MyPlace) marker.getTag();
             Log.d("MARKER CLICK", marker.toString());
 
+            // apro il dialog per visualizzare le informazioni
             MarkerDialog.newInstance(place).show(requireActivity().getSupportFragmentManager(), "markerDialog");
 
             return true;
@@ -301,22 +307,25 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     }
 
     private void startLocationUpdated() {
+        if (!checkLocationPermission()) return;
+
+        // richiesta di localizzazione bilanciata, ogni 10 secondi con un minimo di 5
         LocationRequest locationRequest = new LocationRequest.Builder(
                 Priority.PRIORITY_BALANCED_POWER_ACCURACY, 10000)
                 .setMinUpdateIntervalMillis(5000)
                 .build();
 
-        if (!checkLocationPermission()) return;
-
         // inizio con l'ultima posizione in cache, poi ottengo quella esatta
         flpc.getLastLocation()
                 .addOnSuccessListener(location -> {
                     if (location != null) {
+                        // se ho una posizione salvata parto con quella
                         updateUserLocationOnMap(location);
                     }
                     flpc.requestLocationUpdates(locationRequest, locationUpdateCallback, null);
                 })
                 .addOnFailureListener(e -> {
+                    // recupero dalla cache fallito, inizio con l'aggiornamento classico
                     Log.e("MAP", e.toString());
                     flpc.requestLocationUpdates(locationRequest, locationUpdateCallback, null);
                 });
@@ -324,9 +333,11 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
     }
 
     private void updateUserLocationOnMap(Location location) {
+        // ottengo le coordinate dalla posizione ricevuta
         LatLng position = new LatLng(location.getLatitude(), location.getLongitude());
 
         if (searchRadiusCircle == null) {
+            // creo il cerchio che indica il raggio di ricerca
             searchRadiusCircle = myMap.addCircle(new CircleOptions()
                     .center(position)
                     .radius(getSearchRadius())
@@ -337,6 +348,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         }
 
         if (currentLocationMarker == null) {
+            // creo il marker della posizione utente
             currentLocationMarker =
                     myMap.addMarker(new MarkerOptions()
                             .position(position)
@@ -396,6 +408,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
 
         // definisco il raggio di ricerca
         CircularBounds circle = CircularBounds.newInstance(currentLocationMarker.getPosition(), getSearchRadius());
+
         // lista di categorie da includere nella ricerca
         List<String> includedTypes = PlacesUtils.getPlaceTypesByCategory(category);
 
@@ -408,7 +421,10 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback {
         // effettuo la ricerca
         placesClient.searchNearby(searchNearbyRequest)
                 .addOnSuccessListener(response -> onFetchPlacesCompleted(category, response.getPlaces()))
-                .addOnFailureListener(e -> Log.e("PLACES API", e.toString()));
+                .addOnFailureListener(e -> {
+                    Log.e("PLACES API", e.toString());
+                    Utils.makeToastShort(requireContext(), "Errore caricamento risultati");
+                });
     }
 
     private void onFetchPlacesCompleted(PlacesUtils.Category category, List<Place> places) {
