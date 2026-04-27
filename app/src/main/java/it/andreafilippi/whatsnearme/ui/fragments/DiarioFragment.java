@@ -7,6 +7,8 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 
+import android.os.Handler;
+import android.os.Looper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -23,11 +25,16 @@ import it.andreafilippi.whatsnearme.utils.DatabaseHelper;
 import it.andreafilippi.whatsnearme.utils.LuoghiAdapter;
 import it.andreafilippi.whatsnearme.utils.Utils;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class DiarioFragment extends Fragment {
     private FragmentDiarioBinding binding;
 
     private DatabaseHelper databaseHelper;
     private LuoghiAdapter adapter;
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
 
     public static DiarioFragment newInstance() {
@@ -64,34 +71,43 @@ public class DiarioFragment extends Fragment {
     }
 
     private void changeCursor() {
-        new Thread(() -> {
+        executorService.execute(() -> {
             Cursor cursor = databaseHelper.getAllLuoghi();
-            adapter.changeCursor(cursor);
-        }).start();
+            mainHandler.post(() -> {
+                if (isAdded() && adapter != null) {
+                    adapter.changeCursor(cursor);
+                } else if (cursor != null) {
+                    cursor.close();
+                }
+            });
+        });
     }
 
     private void loadLuoghi() {
-        new Thread(() -> {
+        executorService.execute(() -> {
             Cursor cursor = databaseHelper.getAllLuoghi();
-
-            adapter = new LuoghiAdapter(requireContext(), cursor);
-            adapter.setOnItemClickListener(this::showDetailsDialog);
-            requireActivity().runOnUiThread(() -> {
-                binding.recyclerView.setAdapter(adapter);
+            mainHandler.post(() -> {
+                if (isAdded()) {
+                    adapter = new LuoghiAdapter(requireContext(), cursor);
+                    adapter.setOnItemClickListener(this::showDetailsDialog);
+                    binding.recyclerView.setAdapter(adapter);
+                } else if (cursor != null) {
+                    cursor.close();
+                }
             });
-        }).start();
+        });
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-
+        executorService.shutdown();
         databaseHelper.close();
     }
 
     @SuppressLint("range")
     private void showDetailsDialog(int position) {
-        new Thread(() -> {
+        executorService.execute(() -> {
             Cursor cursor = databaseHelper.getAllLuoghi();
             if (cursor.moveToPosition(position)) {
                 String id = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_ID));
@@ -100,27 +116,29 @@ public class DiarioFragment extends Fragment {
                 Double lng = cursor.getDouble(cursor.getColumnIndex(DatabaseHelper.COLUMN_LONGITUDINE));
                 String imageUri = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_FOTO_PATH));
 
-                LayoutInflater inflater = requireActivity().getLayoutInflater();
-                DialogDettaglioDiarioBinding dialogBinding = DialogDettaglioDiarioBinding.inflate(inflater, null, false);
+                mainHandler.post(() -> {
+                    if (isAdded()) {
+                        LayoutInflater inflater = LayoutInflater.from(requireContext());
+                        DialogDettaglioDiarioBinding dialogBinding = DialogDettaglioDiarioBinding.inflate(inflater, null, false);
+                        dialogBinding.imageView.setImageURI(Uri.parse("file://" + imageUri));
 
-                dialogBinding.imageView.setImageURI(Uri.parse("file://" + imageUri));
-
-                AlertDialog.Builder builder = new AlertDialog.Builder(requireContext())
-                        .setTitle(nome)
-                        .setView(dialogBinding.getRoot())
-                        .setPositiveButton("Apri su Maps", (dialog, which) -> {
-                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getPlaceLocationUrl(new MyPlace(nome, lat, lng))));
-                            intent.setPackage(null);
-                            startActivity(intent);
-                        })
-                        .setNegativeButton("Rimuovi", (dialog, which) -> {
-                            confermaRimozione(id);
-                        });
-
-                requireActivity().runOnUiThread(() -> builder.create().show());
+                        new AlertDialog.Builder(requireContext())
+                                .setTitle(nome)
+                                .setView(dialogBinding.getRoot())
+                                .setPositiveButton("Apri su Maps", (dialog, which) -> {
+                                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getPlaceLocationUrl(new MyPlace(nome, lat, lng))));
+                                    intent.setPackage(null);
+                                    startActivity(intent);
+                                })
+                                .setNegativeButton("Rimuovi", (dialog, which) -> {
+                                    confermaRimozione(id);
+                                })
+                                .show();
+                    }
+                });
             }
             cursor.close();
-        }).start();
+        });
     }
 
     private void confermaRimozione(String id) {
@@ -128,8 +146,10 @@ public class DiarioFragment extends Fragment {
                 .setTitle("Conferma Rimozione")
                 .setMessage("Sei sicuro di voler rimuovere questo elemento?")
                 .setPositiveButton("Sì", (dialog, which) -> {
+                    executorService.execute(() -> {
                         databaseHelper.removeLuogo(id);
-                        adapter.changeCursor(databaseHelper.getAllLuoghi());
+                        changeCursor();
+                    });
                 })
                 .setNegativeButton("No", null)
                 .show();
