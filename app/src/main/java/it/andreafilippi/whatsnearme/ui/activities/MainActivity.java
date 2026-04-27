@@ -3,18 +3,22 @@ package it.andreafilippi.whatsnearme.ui.activities;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothServerSocket;
-import android.bluetooth.BluetoothSocket;
-import android.content.DialogInterface;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.UnderlineSpan;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -27,11 +31,6 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.util.UUID;
 
 import it.andreafilippi.whatsnearme.R;
@@ -43,7 +42,7 @@ import it.andreafilippi.whatsnearme.ui.fragments.SettingsFragment;
 import it.andreafilippi.whatsnearme.utils.BtReceiverTask;
 import it.andreafilippi.whatsnearme.utils.Utils;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements BtReceiverTask.BtCallback {
     private static final String MAP_FRAG = "map_frag";
     private static final String DIARY_FRAG = "diary_frag";
     private static final String SETTINGS_FRAG = "settings_frag";
@@ -65,6 +64,10 @@ public class MainActivity extends AppCompatActivity {
 
     private BluetoothAdapter btAdapter;
     private BtReceiverTask btReceiverTask;
+
+    private AlertDialog btDialog;
+    private ProgressBar btProgressBar;
+    private TextView btMsgReceived;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -147,6 +150,15 @@ public class MainActivity extends AppCompatActivity {
                 // non ho i permessi, chiedo a runtime
                 locationPermissionLauncher.launch(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION});
             }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (btReceiverTask != null) {
+            btReceiverTask.cancel(true);
+            btReceiverTask = null;
         }
     }
 
@@ -285,8 +297,8 @@ public class MainActivity extends AppCompatActivity {
         DialogBtReceiverBinding binding = DialogBtReceiverBinding.inflate(getLayoutInflater(), null, false);
         builder.setView(binding.getRoot());
 
-        ProgressBar progressBar = binding.progressBar;
-        TextView msgReceived = binding.msgReceived;
+        btProgressBar = binding.progressBar;
+        btMsgReceived = binding.msgReceived;
 
         builder.setNegativeButton("Annulla", (d, which) -> {
                 if (btReceiverTask != null) {
@@ -296,9 +308,9 @@ public class MainActivity extends AppCompatActivity {
                 d.dismiss();
             });
 
-        AlertDialog dialog = builder.create();
-        dialog.setCancelable(true);
-        dialog.setOnCancelListener((d) -> {
+        btDialog = builder.create();
+        btDialog.setCancelable(true);
+        btDialog.setOnCancelListener((d) -> {
                 if (btReceiverTask != null) {
                     btReceiverTask.cancel(true);
                     btReceiverTask = null;
@@ -306,9 +318,60 @@ public class MainActivity extends AppCompatActivity {
                 d.dismiss();
             });
 
-        dialog.show();
+        btDialog.show();
 
-        btReceiverTask = new BtReceiverTask(this, btAdapter, getString(R.string.btConnectionName), UUID.fromString(getString(R.string.btConnectionUID)), dialog, progressBar, msgReceived);
+        btReceiverTask = new BtReceiverTask(btAdapter, getString(R.string.btConnectionName), UUID.fromString(getString(R.string.btConnectionUID)), this);
         btReceiverTask.execute();
+    }
+
+    @Override
+    public void onUpdate(String msg) {
+        if (btProgressBar != null) btProgressBar.setVisibility(View.GONE);
+        if (btMsgReceived != null && btDialog != null) {
+            if (msg != null && !msg.equals("CANCELLED")) {
+                btDialog.setTitle("Link ricevuto!");
+
+                // stile di un link
+                SpannableString spannableString = new SpannableString(msg);
+                spannableString.setSpan(new UnderlineSpan(), 0, msg.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                spannableString.setSpan(new ForegroundColorSpan(Color.BLUE), 0, msg.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                btMsgReceived.setText(spannableString);
+                btMsgReceived.setVisibility(View.VISIBLE);
+
+                btMsgReceived.setOnClickListener(v -> {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(btMsgReceived.getText().toString()));
+                    intent.setPackage(null);
+                    startActivity(intent);
+                });
+                btMsgReceived.setOnLongClickListener(v -> {
+                    ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("Link Maps", msg);
+                    clipboard.setPrimaryClip(clip);
+                    Utils.makeToastShort(this, "Messaggio copiato negli appunti");
+
+                    return true;
+                });
+            } else if ("CANCELLED".equals(msg)) {
+                btMsgReceived.setText("Connessione annullata.");
+                btMsgReceived.setVisibility(View.VISIBLE);
+            } else {
+                btDialog.setTitle("Errore");
+                btMsgReceived.setText("Errore nella ricezione del messaggio.");
+                btMsgReceived.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+
+    @Override
+    public void onProgress(int p) {
+        if (btProgressBar != null) {
+            if (p >= 100) {
+                btProgressBar.setVisibility(View.GONE);
+            } else {
+                btProgressBar.setVisibility(View.VISIBLE);
+                btProgressBar.setIndeterminate(p < 0);
+                if (p >= 0) btProgressBar.setProgress(p);
+            }
+        }
     }
 }
